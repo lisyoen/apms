@@ -422,3 +422,13 @@ timeout_min: 20
 - API Key는 생성 입력 외 응답에 노출되지 않는다.
 - Markdown은 안전한 식별자로만 조회·공유·다운로드된다.
 - 중복 발주와 상태 전이가 멱등적으로 처리된다.
+
+| GET | `/chat/sessions?project_slug={slug}` | user | 소유 프로젝트에 고정된 세션 목록 |
+| POST | `/chat/sessions` | user | `project_slug`로 소유 프로젝트에 세션 생성 |
+| POST | `/admin/llm-connections/{id}` | admin | 연결 테스트와 최종 호출 URL 반환 |
+
+### 챗 패널과 LLM URL 동작
+
+*Implementation status: implemented*
+
+프로젝트 챗 클라이언트는 자유롭게 선택 가능한 프로젝트 ID 대신 `project_slug`를 전송한다. 서버는 소유권을 확인해 해당 `project_id`를 세션에 저장한다. OpenAI 및 호환 연결의 base URL은 끝의 슬래시와 `/v1`을 제거해 저장하고, 호출 시 `/v1/chat/completions`를 정확히 한 번 붙인다. 연결 테스트 응답은 축약된 모델 응답과 함께 `url`을 반환한다.

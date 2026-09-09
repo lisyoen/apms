@@ -1,6 +1,7 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import MdViewer from "@/components/MdViewer";
+import ChatPanel from "@/components/chat/ChatPanel";
 const docs = [
   { key: "dev", label: "개요" },
   { key: "guide", label: "지침" },
@@ -34,6 +35,9 @@ export default function ProjectClient({ slug }: { slug: string }) {
   const [status, setStatus] = useState("pending");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openFile, setOpenFile] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(true);
+  const [chatWidth, setChatWidth] = useState(420);
+  const dragging = useRef(false);
   async function loadDoc(kind: string) {
     const r = await fetch(`/api/projects/${slug}/docs/${kind}`);
     if (r.ok) setContent(await r.text());
@@ -51,12 +55,34 @@ export default function ProjectClient({ slug }: { slug: string }) {
       .catch(() => (location.href = "/dashboard"));
   }, [slug]);
   useEffect(() => {
+    setChatOpen(localStorage.getItem("apms.project.chat.open") !== "false");
+    const saved = Number(localStorage.getItem("apms.project.chat.width"));
+    if (saved >= 320 && saved <= 720) setChatWidth(saved);
+  }, []);
+  useEffect(() => {
     if (section === "tasks") void loadTasks();
     else {
       setOpenFile(null);
       void loadDoc(section);
     }
   }, [section, status]);
+  useEffect(() => {
+    if (section !== "tasks") return;
+    const refresh = () => void loadTasks();
+    const timer = window.setInterval(refresh, 5000);
+    window.addEventListener("apms:tasks-changed", refresh);
+    return () => { window.clearInterval(timer);window.removeEventListener("apms:tasks-changed", refresh); };
+  }, [section, status]);
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      if (!dragging.current) return;
+      const width = Math.max(320, Math.min(720, window.innerWidth - event.clientX));
+      setChatWidth(width);
+    };
+    const up = () => { if (dragging.current) { dragging.current=false;localStorage.setItem("apms.project.chat.width",String(chatWidth)); } };
+    window.addEventListener("pointermove", move);window.addEventListener("pointerup", up);
+    return () => { window.removeEventListener("pointermove", move);window.removeEventListener("pointerup", up); };
+  }, [chatWidth]);
   async function save() {
     await fetch(`/api/projects/${slug}/docs/${section}`, {
       method: "PUT",
@@ -112,7 +138,14 @@ export default function ProjectClient({ slug }: { slug: string }) {
     if (!r.ok) throw new Error(body.error);
     return `${location.origin}${body.url}`;
   }
+  function openInChat(task: Task) {
+    setChatOpen(true);localStorage.setItem("apms.project.chat.open","true");
+    const prompt=`다음 작업지시서를 요약하고 현재 상태와 다음 조치를 알려줘: ${task.filename} — ${task.title}`;
+    localStorage.setItem(`apms.chat.prompt.${slug}`,prompt);
+    window.dispatchEvent(new CustomEvent("apms:chat-prompt", {detail:{prompt}}));
+  }
   return (
+    <div className={`project-workspace ${chatOpen ? "chat-open" : "chat-closed"}`} style={{"--chat-width":`${chatWidth}px`} as React.CSSProperties}>
     <main className="project-layout">
       <aside className="project-sidebar">
         <a className="back" href="/dashboard">
@@ -252,6 +285,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
                           ))}
                         </select>
                       )}
+                      <button className="open-in-chat" onClick={() => openInChat(t)}>챗봇에서 열기</button>
                     </div>
                   ))}
                   {!tasks.length && (
@@ -264,5 +298,8 @@ export default function ProjectClient({ slug }: { slug: string }) {
         )}
       </section>
     </main>
+    <button className="chat-collapse" aria-expanded={chatOpen} onClick={()=>{const next=!chatOpen;setChatOpen(next);localStorage.setItem("apms.project.chat.open",String(next));}}>{chatOpen?"챗봇 접기":"챗봇 펴기"}</button>
+    {chatOpen&&<aside className="project-chat" data-testid="project-chat-panel"><div className="chat-resizer" onPointerDown={(event)=>{dragging.current=true;event.currentTarget.setPointerCapture(event.pointerId);}}/><ChatPanel projectSlug={slug} layout="panel" /></aside>}
+    </div>
   );
 }

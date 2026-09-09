@@ -246,3 +246,11 @@ Runner and LLM provider abstractions exist. Container, webhook/Telegram notifica
 - API and file formats remain stable across deployment phases.
 
 The Phase 1 flow covers most criteria. Complete log retention, strict multi-instance concurrency, batch notifications, and cross-phase compatibility remain partial or planned.
+
+## 13. Project chat workspace
+
+*Implementation status: implemented*
+
+`ChatPanel` is the shared chat UI for the standalone `/chat` page, the resizable project-side panel, and `/p/{slug}/chat` fullscreen mode. Project modes bind session listing and creation to the authenticated user's project slug. A project-scoped local-storage key preserves the active session through client-side fullscreen and panel navigation.
+
+Desktop project pages use a 420 px side panel that can be resized between 320 and 720 px or collapsed. Below 900 px it becomes a bottom sheet. Chat tool results dispatch a local task-change event, while the task view also polls every five seconds for changes from other processes.

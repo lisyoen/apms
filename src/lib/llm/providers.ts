@@ -3,10 +3,12 @@ export type ToolSpec = { name:string; description:string; parameters:Record<stri
 export type LlmResult = { content:string; toolCalls:{id:string;name:string;arguments:Record<string,unknown>}[]; inputTokens:number; outputTokens:number };
 export type Connection = { provider:string;base_url:string;model:string;apiKey:string };
 const estimate=(value:string)=>Math.max(1,Math.ceil(value.length/4));
+export function normalizeBaseUrl(baseUrl:string){return baseUrl.trim().replace(/\/+$/,"").replace(/\/v1$/i,"")}
+export function finalLlmUrl(provider:string,baseUrl:string){const base=normalizeBaseUrl(baseUrl);return provider==="anthropic"?`${base}/v1/messages`:`${base}/v1/chat/completions`}
 
 export async function complete(connection:Connection,messages:ChatMessage[],tools:ToolSpec[]=[]):Promise<LlmResult>{
   const anthropic=connection.provider==="anthropic";
-  const url=anthropic?`${connection.base_url.replace(/\/$/,"")}/v1/messages`:`${connection.base_url.replace(/\/$/,"")}/v1/chat/completions`;
+  const url=finalLlmUrl(connection.provider,connection.base_url);
   const system=messages.filter(m=>m.role==="system").map(m=>m.content).join("\n\n");
   const body=anthropic?{model:connection.model,max_tokens:4096,system,messages:messages.filter(m=>m.role!=="system").map(m=>({role:m.role==="assistant"?"assistant":"user",content:m.content})),tools:tools.map(t=>({name:t.name,description:t.description,input_schema:t.parameters}))}:{model:connection.model,stream:false,messages,tools:tools.map(t=>({type:"function",function:t})),tool_choice:"auto"};
   const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json",...(anthropic?{"x-api-key":connection.apiKey,"anthropic-version":"2023-06-01"}:{authorization:`Bearer ${connection.apiKey}`})},body:JSON.stringify(body)});
