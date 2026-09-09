@@ -14,3 +14,11 @@ npm run dev
 ```
 
 The production server uses port `9107` by default. Never commit `.env` or credentials.
+
+## Design documents
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Folder specification](docs/FOLDER-SPEC.md)
+- [Data model](docs/DATA-MODEL.md)
+- [REST API](docs/API.md)
+- [Scheduler and worker](docs/WORKER.md)
