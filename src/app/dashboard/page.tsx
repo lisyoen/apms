@@ -1,0 +1,2 @@
+import { cookies } from "next/headers"; import { redirect } from "next/navigation"; import { readSession } from "@/lib/session";
+export default async function DashboardPage() { const session = await readSession((await cookies()).get("apms_session")?.value); if (!session) redirect("/login"); return <main style={{ maxWidth: 840, margin: "0 auto", padding: "18vh 32px" }}><p>APMS DASHBOARD</p><h1>환영합니다 {session.email}</h1><p>프로젝트 대시보드가 준비되었습니다.</p></main>; }

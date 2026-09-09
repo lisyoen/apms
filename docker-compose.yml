@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: apms-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: apms
+      POSTGRES_USER: apms
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:9108:5432"
+    volumes:
+      - apms-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apms -d apms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  apms-db-data:
