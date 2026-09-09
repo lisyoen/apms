@@ -14,7 +14,6 @@ APMS 기획 inbox (planning/additional.txt)
 1. PoC 전용 OpenAI API 키: 발급 후 채팅으로 전달 (Claude Chat 이 `settings/secrets/apms-openai.md` chmod 600 저장 → 관리자 LLM 연결 등록 지시서 발주). 절차: `references/apms/openai-key-procedure.md`
 2. 완료 이메일용 Gmail 앱 비밀번호: `settings/secrets/apms-smtp.md` 에 `APMS_SMTP_URL=smtps://<gmail주소>:앱비밀번호@smtp.gmail.com:465` 저장 요청
 3. #009 실행 시 OpenCode ChatGPT OAuth 로그인 1회가 필요할 수 있음 — 워커 보고서의 절차를 확인 후 안내 예정
-4. (2026-09-09 21:31 추가, 상세는 지메일 발송본) 챗봇 즉시 가동을 위해 OpenAI 키 수령 전까지 LiteLLM(gemma4) 을 기본 LLM 연결로 임시 등록해도 되는지 — 기존 "키 수령 전까지 등록 보류" 결정 변경 필요
 5. 프로젝트 매니저 내 챗봇 배치: 기본안 "프로젝트 화면 우측 패널 + 전체화면 토글". 이의 없으면 #012 로 발주하고 #008 보다 먼저 릴리스
 6. 외부 git repo(원격 워크스페이스) 실행 모드: B-2 "워커(OpenCode) 를 개발PC 에서 SSH 로 실행" 을 기본으로 하는 안에 동의하는지. 1차 대상 OS(Windows PowerShell OpenSSH 우선 여부), SSH 자격 방식(APMS 가 사용자별 키 발급 → 사용자가 authorized_keys 등록 권장), PoC 검증용 개발PC 로 집PC 사용 가능 여부
 
@@ -29,5 +28,8 @@ APMS 기획 inbox (planning/additional.txt)
 1. 외부 git repo 지원: 사용자의 git repo 가 별도로 있을 수 있다. APMS 와 같이 설치된 Gitea 가 기본 레포지만, 사용자가 별도의 git repo 에서 작업해야 하는 경우 사용자 개발PC 에 SSH 로 접속해 해당 git repo 에 접근하는 방식을 기획에 추가한다.
 2. 배경: 개발팀만 하더라도 SDS GitHub 이나 사내 GitLab 에서 작업하는 경우가 종종 있고, 이 경우 접근이 IP whitelist 로 제한되어 APMS 서버에서는 접근 자체가 안 될 수 있다.
 3. 프로젝트 매니저에 claude.ai 스타일 챗봇이 시급하다.
+
+4. (2026-09-09 23:10) 챗봇 LLM: PoC 에서는 OpenAI API Key 를 사용한다. 다만 당장의 챗봇 UX 테스트를 위해 spark-home 의 Gemma4(vLLM, OpenAI 호환) 를 기본 LLM 연결로 먼저 설정한다. OpenAI 키 수령 시 기본 연결만 교체한다.
+   → 반영: 2026-09-09 Claude Chat 이 관리자 LLM 연결 "gemma4-spark-home" (provider compatible, model gemma4-26b-nvfp4, context 65536, base_url 은 `/v1` 없이 호스트만) 을 기본으로 등록. API 왕복 테스트 통과(세션 생성 → 메시지 → 응답 535 토큰). 주의: base_url 에 `/v1` 을 붙이면 404 — #012 에서 자동 정규화 예정.
 
 (Claude Chat 1차 분석·제안: 2026-09-09 지메일 "[APMS] 기획 inbox 병합 결과 및 제안·질문" 참조. 위 항목은 사용자 답변 수령 후 "기획 반영" 시 `proposals/apms.md` 이관·이슈 등록·지시서 발주 후 삭제)
