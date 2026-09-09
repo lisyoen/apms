@@ -2,7 +2,7 @@
 
 ## 1. 공통 계약
 
-기본 경로는 `/api/v1`이고 JSON을 사용한다.
+기본 경로는 `/api/v1`이고 JSON을 사용한다. P2 대시보드 전환 기간에는 이슈 #003에 명시된 `/api/projects`, `/api/md/share` 비버전 경로를 우선 제공하며, `/api/v1` 별칭은 후속 호환 계층에서 추가한다.
 Markdown 원문 다운로드만 `text/markdown`을 반환한다.
 인증은 HttpOnly, Secure, SameSite 쿠키 기반 세션이다.
 일반 사용자는 자기 리소스만, 관리자는 명시된 관리 리소스를 조회한다.

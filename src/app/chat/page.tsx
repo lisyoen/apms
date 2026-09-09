@@ -1,0 +1,2 @@
+import { redirect } from "next/navigation";import { currentUser } from "@/lib/auth";import { db } from "@/lib/db";import ChatShell from "./chat-shell";
+export default async function ChatPage(){const u=await currentUser();if(!u)redirect("/login");const configured=Number((await db.query("SELECT count(*) n FROM llm_connections WHERE enabled AND is_default")).rows[0].n)>0;return <ChatShell user={{email:u.email,role:u.role}} llmConfigured={configured}/>}

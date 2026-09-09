@@ -1,0 +1,2 @@
+import { apiError,requireAdmin } from "@/lib/auth";import { db } from "@/lib/db";
+export async function GET(){try{await requireAdmin();const r=await db.query(`SELECT p.id,p.name,p.slug,p.created_at,u.email owner_email,count(t.id)::int task_count,count(t.id) FILTER(WHERE t.status='pending')::int pending_count FROM projects p JOIN users u ON u.id=p.owner_id LEFT JOIN tasks t ON t.project_id=p.id WHERE p.archived_at IS NULL GROUP BY p.id,u.email ORDER BY p.created_at DESC`);return Response.json({items:r.rows})}catch(e){return apiError(e)}}

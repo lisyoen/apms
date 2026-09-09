@@ -1,0 +1,1 @@
+import ShareViewer from"./share-viewer";export default async function SharePage({params}:PageProps<"/share/[token]">){const{token}=await params;return <main className="share-page"><ShareViewer token={token}/></main>}

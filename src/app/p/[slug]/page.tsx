@@ -1,0 +1,2 @@
+import{cookies}from"next/headers";import{redirect}from"next/navigation";import{readSession}from"@/lib/session";import AppShell from"@/components/AppShell";import ProjectClient from"./project-client";
+export default async function ProjectPage({params}:PageProps<"/p/[slug]">){const session=await readSession((await cookies()).get("apms_session")?.value);if(!session)redirect("/login");const{slug}=await params;return <AppShell email={session.email} role={session.role}><ProjectClient slug={slug}/></AppShell>}
