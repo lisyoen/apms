@@ -1,7 +1,6 @@
 # APMS - Agentic Project Management System
 
-<<<<<<< HEAD
-An open-source project management system for coordinating task queues and agentic work.
+An open-source, multi-user agentic project management system: project guidelines, task instruction queues, and multi-worker execution driven by LLM agents.
 
 ## Development
 
@@ -15,10 +14,3 @@ npm run dev
 ```
 
 The production server uses port `9107` by default. Never commit `.env` or credentials.
-=======
-An open-source, multi-user agentic project management system: project guidelines, task instruction queues, and multi-worker execution driven by LLM agents.
-
-## Status
-
-Planning phase. Daily planning issues are tracked under the `planning` label.
->>>>>>> origin/main
