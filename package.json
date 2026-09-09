@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p ${PORT:-9107}",
     "lint": "eslint .",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs"
   },
