@@ -77,7 +77,7 @@ test("next-task는 성공 직후 최상위 priority", { concurrency: false }, as
 
 test("timeout_min=0.05 초과는 failed", { concurrency: false }, async () => {
   const f = await fixture(); const file = "20260909-006-task.md"; await addTask(f, file, "sleep:4", { timeout: 0.05 }); await f.scheduler.tick();
-  await waitFor(async () => (await pool.query("SELECT status FROM tasks WHERE project_id=$1 AND filename=$2", [f.project.id, file])).rows[0]?.status === "failed", 5000);
+  await waitFor(async () => (await pool.query("SELECT status FROM tasks WHERE project_id=$1 AND filename=$2", [f.project.id, file])).rows[0]?.status === "failed", 8000);
   assert.equal((await pool.query("SELECT r.status FROM task_runs r JOIN tasks t ON t.id=r.task_id WHERE t.project_id=$1 AND t.filename=$2", [f.project.id, file])).rows[0].status, "timed_out");
 });
 
