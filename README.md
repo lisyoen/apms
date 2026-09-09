@@ -1,6 +1,8 @@
-# APMS - Agentic Project Management System
+# APMS - AI Project Management System
 
-An open-source, multi-user agentic project management system: project guidelines, task instruction queues, and multi-worker execution driven by LLM agents.
+An open-source, multi-user AI project management system for project guidance, task instruction queues, and multi-worker execution powered by LLMs.
+
+한국어 문서는 [README.ko.md](README.ko.md)를 참조하세요.
 
 ## Development
 
@@ -17,6 +19,9 @@ The production server uses port `9107` by default. Never commit `.env` or creden
 
 ## Design documents
 
+English is the source language for design documents. Korean translations use the same filenames under `docs/ko/`.
+
+- [Documentation index](docs/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Folder specification](docs/FOLDER-SPEC.md)
 - [Data model](docs/DATA-MODEL.md)

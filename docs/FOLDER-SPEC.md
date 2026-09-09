@@ -1,12 +1,16 @@
-# APMS 파일·폴더 규격
+# APMS file and folder specifications
 
-## 1. 목적
+## 1. Purpose
 
-이 문서는 `APMS_DATA_ROOT` 아래의 사용자·프로젝트 문서와 파일 기반 작업 큐 규격을 정의한다.
-모든 경로 예시는 데이터 루트 기준 상대 경로다.
-파일 내용이 업무 원본이며 DB는 이를 검색하고 집계하는 인덱스다.
+*Implementation status: partial*
 
-## 2. 전체 트리
+This document defines the user/project documentation and file-based work queue specifications under `APMS_data_root`.
+All path examples are data root relative paths.
+The contents of the file are the original work, and the DB is the index to search and aggregate them.
+
+## 2. Entire tree
+
+*Implementation status: implemented*
 
 ```text
 APMS_DATA_ROOT/
@@ -28,96 +32,110 @@ APMS_DATA_ROOT/
             └── reports/
 ```
 
-## 3. 경로 세그먼트 규칙
+## 3. Route segment rules
 
-| 세그먼트 | 규칙 | 예시 |
+*Implementation status: implemented*
+
+| Segments | Rules | Examples |
 |---|---|---|
-| `{user}` | 소문자 영숫자와 하이픈, 2~63자 | `team-user` |
-| `{project}` | 소문자 영숫자와 하이픈, 2~63자 | `sample-app` |
-| 확장자 | UTF-8 Markdown만 허용 | `.md` |
-| 구분자 | 운영체제와 무관하게 `/`로 표현 | `user/project/docs` |
+| `{user}` | Lowercase alphanumeric characters and hyphens, 2-63 characters | `team-user` |
+| `{project}` | Lowercase alphanumeric characters and hyphens, 2-63 characters | `sample-app` |
+| Extension | UTF-8 Markdown only | `.md` |
+| Separator | Express with `/` regardless of operating system | `user/project/docs` |
 
-점, 빈 세그먼트, `..`, 선행·후행 하이픈은 허용하지 않는다.
-사용자 표시명과 프로젝트 표시명은 DB에 별도로 두고 경로에는 slug만 쓴다.
-심볼릭 링크는 탐색과 쓰기 대상에서 제외한다.
-정규화한 실경로가 데이터 루트를 벗어나면 요청을 거부한다.
+Dots, empty segments, `..`, leading and trailing hyphens are not allowed.
+Keep the user display name and project display name separate in the DB and use only the slug in the path.
+Symbolic links are excluded from browsing and writing.
+If the normalized real path goes out of the data route, the request is rejected.
 
-## 4. 사용자 문서
+## 4. User documentation
 
-`{user}/docs/`는 모든 프로젝트에 공통인 사용자 지침을 저장한다.
-파일 이름은 충돌하지 않는 설명형 kebab-case를 권장한다.
-프로젝트 지침보다 사용자 지침이 먼저 적용되고, 충돌 시 프로젝트 지침이 우선한다.
-시크릿과 API Key는 Markdown에 저장하지 않는다.
+*Implementation status: partial*
 
-| 문서 예 | 용도 |
+`{user}/docs/` stores user instructions that are common to all projects.
+We recommend an explanatory kebab-case that does not conflict with the filename.
+User guidance takes precedence over project guidance, and project guidance takes precedence in the event of a conflict.
+Incognito and API keys are not stored in Markdown.
+
+| Document example | Intended use |
 |---|---|
-| `preferences.md` | 언어, 출력 형식, 작업 성향 |
-| `coding.md` | 공통 코딩 규약 |
-| `review.md` | 검토와 완료 기준 |
+| `preferences.md` | Language, Output format, Tendency |
+| `coding.md` | Common coding conventions |
+| `review.md' | Criteria for review and completion |
 
-## 5. 프로젝트 문서
+## 5. Project documentation
 
-| 파일 | 역할 | 작성 주체 |
+*Implementation status: implemented*
+
+| file | role | created by |
 |---|---|---|
-| `{project}.guide.md` | 에이전트가 항상 따르는 프로젝트 지침 | 사용자/관리자 |
-| `{project}.setting.md` | 비민감 실행 설정과 프로젝트 옵션 | 시스템/사용자 |
-| `{project}.proposal.md` | 확정 기획과 범위 | 사용자/챗봇 |
-| `{project}.dev.md` | 개발 현황, 이력, 다음 단계 | 워커/사용자 |
-| `{project}.next.md` | 세션 핸드오버 요약 | 챗봇 |
+| `{project} .guide.md` | Project instructions always followed by agents | Users/Admins |
+| `{project} .setting.md` | Non-sensitive execution settings and project options | System/User |
+| `{project} .proposal.md` | Definitive Planning and Scope | Users/Chatbots |
+| `{project} .dev.md` | Development status, history, next steps | Worker/user |
+| `{project} .next.md` | Session Handover Summary | Chatbot |
 
-프로젝트 생성 시 다섯 파일을 빈 템플릿으로 원자 생성한다.
-없는 선택 문서는 빈 문서와 동일하게 처리하되 `guide`는 기본 템플릿을 보장한다.
-문서 변경은 임시 파일 쓰기, flush, 같은 디렉터리 rename 순서로 수행한다.
+When creating a project, atomize five files with an empty template.
+Selected documents that are missing are treated the same as empty documents, but `guide` guarantees the default template.
+Document changes are made in the following order: temporary file writing, flush, rename of the same directory.
 
-## 6. 작업 큐 디렉터리
+## 6. Work Queue Directory
 
-| 디렉터리 | 의미 | 쓰기 주체 |
+*Implementation status: implemented*
+
+| Directory | Meaning | Writing Subject |
 |---|---|---|
-| `pending/` | 실행 가능 여부를 기다리는 작업 | API, 스케줄러 |
-| `in-progress/` | 워커가 lease를 가진 작업 | 스케줄러 |
-| `done/` | 성공 종료한 작업지시서 | 워커 러너 |
-| `failed/` | 실패·취소·타임아웃 작업지시서 | 워커 러너 |
-| `reports/` | 성공·실패 실행 보고서 | 워커 러너 |
+| `pending/` | Action waiting for execution | API, Scheduler |
+| `in-progress/` | Work where workers have leases | Scheduler |
+| `done/` | Successful End Work Order | worker Runner |
+| `failed/` | Failed · Cancel · Timeout Work Order | worker Runner |
+| `reports/` | Successful & Failed Execution Reports | worker Runner |
 
-동일 작업 파일은 네 상태 디렉터리 중 정확히 한 곳에만 존재해야 한다.
-보고서는 상태가 아니므로 `reports/`에 독립 보관한다.
+The same working file must exist in exactly one of your state directories.
+Since the report is not a status, it will be kept independently in `reports/`.
 
-## 7. 파일명 규칙
+## 7. File naming conventions
 
-작업지시서는 `YYYYMMDD-###-task.md` 형식이다.
-보고서는 `YYYYMMDD-###-report.md` 형식이다.
-날짜는 프로젝트가 사용하는 UTC 기준 생성일이다.
-번호는 001부터 999까지 3자리 0 채움 십진수다.
-작업과 보고서는 같은 날짜·번호를 공유한다.
+*Implementation status: implemented*
 
-| 유효 | 사유 |
+The work order is in the format `YYYYMMDD-###-task.md`.
+Report is formatted as` YYYYMMDD-###-report.md `.
+The date is the creation date as of UTC used by the project.
+The number is a 3-digit 0-filled decimal number from 001 to 999.
+Tasks and reports share the same date and number.
+
+| valid | reason |
 |---|---|
-| `20260909-001-task.md` | 정확한 날짜·번호·종류 |
-| `20260909-001-report.md` | 작업과 대응하는 보고서 |
+| `20260909-001-task.md` | Exact date · number · type |
+| `20260909-001-report.md` | Tasks and corresponding reports |
 
-| 무효 | 사유 |
+| Invalid | Reason |
 |---|---|
-| `2026-09-09-1-task.md` | 날짜와 번호 형식 오류 |
-| `20260909-000-task.md` | 번호 000 금지 |
-| `20260909-001-fix.md` | 종류 접미사 오류 |
+| `2026-09-09-1-task.md` | Date and number format error |
+| `20260909-000-task.md` | Forbid number 000 |
+| `20260909-001-fix.md` | Type suffix error |
 
-## 8. 번호 채번
+## 8. Number allocation
 
-1. 사용자와 프로젝트, UTC 날짜를 기준으로 채번 범위를 잡는다.
-2. DB 트랜잭션에서 해당 날짜의 다음 번호를 행 잠금으로 확보한다.
-3. 네 상태 디렉터리와 reports에서 같은 번호 존재 여부를 재확인한다.
-4. 충돌하면 다음 번호로 재시도한다.
-5. 파일이 생성된 번호는 삭제 후에도 재사용하지 않는다.
-6. 999를 소진하면 발주를 거부하고 다음 날짜 또는 운영자 조치를 요구한다.
+*Implementation status: partial*
 
-DB 복구 시 모든 디렉터리를 스캔해 날짜별 최댓값 다음부터 시작한다.
-동시 발주에는 `(project_id, task_date, sequence)` 유일 제약을 둔다.
+1. Scope based on user, project and UTC date.
+2. Secure the next number of that date in the DB transaction as a row lock.
+3. Reconfirm the existence of the same number in your status directory and reports.
+4. If it crashes, retry with this number:
+5. The number where the file was created will not be reused after deletion.
+6. If 999 is exhausted, refuse the order and demand the next date or operator action.
 
-## 9. Frontmatter 스키마
+When recovering the DB, scan all directories and start after the maximum by date.
+In the simultaneous ordering, the only constraint is` (project_id, task_date, sequence) `.
+
+## 9. Frontmatter Schema
+
+*Implementation status: implemented*
 
 ```yaml
 ---
-title: 로그인 오류 수정
+title: fix login errors
 project: sample-app
 user: team-user
 pre-task: 20260909-001-task.md
@@ -128,134 +146,150 @@ timeout_min: 20
 ---
 ```
 
-| 필드 | 타입 | 필수 | 규칙 |
+| Field | Type | Required | Rule |
 |---|---|---|---|
-| `title` | string | 예 | 한 줄, 1~120자 |
-| `project` | slug | 예 | 경로의 프로젝트와 일치 |
-| `user` | slug | 예 | 경로의 사용자와 일치 |
-| `pre-task` | string/null | 예 | 선행 작업 파일명 또는 `null` |
-| `next-task` | string/null | 예 | 후속 작업 파일명 또는 `null` |
-| `type` | enum | 예 | `task` 또는 `report` |
-| `created_at` | datetime | 예 | ISO 8601 UTC |
-| `timeout_min` | integer | task만 | 기본 20, 허용 1~1440 |
+| `title` | string | Yes | 1 line, 1-120 characters |
+| `project` | slug | Yes | Matches projects in path |
+| `user` | slug | Yes | Matches a user in the path |
+| `pre-task` | string/null | Yes | Prerequisite filename or `null` |
+| `next-task` | string/null | Yes | Follow-up filename or `null` |
+| `type` | enum | Yes | `task` or `report` |
+| `created_at` | datetime | Yes | ISO 8601 UTC |
+| `timeout_min` | integer | task only | default 20, allow 1-1440 |
 
-알 수 없는 키는 보존하되 코어 스케줄러는 무시한다.
-중복 키, YAML alias, 실행 가능한 태그는 거부한다.
-보고서의 `pre-task`와 `next-task`는 대응 작업 값을 복사한다.
+Preserve unknown keys, but ignore the core scheduler.
+Reject duplicate keys, YAML aliases, and actionable tags.
+The `pre-task' and `next-task` of the report copy the corresponding task value.
 
-## 10. 작업 본문 규격
+## 10. Working Body Specifications
 
-권장 섹션 순서는 다음과 같다.
+*Implementation status: implemented*
 
-```markdown
-# 작업 제목
-## 배경
-## 목표
-## 작업 범위
-## 제외 범위
-## 구현 요구사항
-## 검증 체크리스트
-## 완료 보고
-```
-
-목표는 검증 가능한 결과로 작성한다.
-작업 범위에는 접근 가능한 프로젝트 상대 경로만 적는다.
-완료 체크리스트에는 테스트, 변경 파일, 보고서 생성을 포함한다.
-외부 시스템 변경은 필요한 권한과 실패 시 동작을 명시한다.
-
-## 11. 보고서 본문 규격
+The recommended section order is as follows:
 
 ```markdown
-# 작업 보고서
-## 결과
-## 변경 사항
-## 검증 결과
-## 실행 정보
-## 남은 문제
+Task Title
+Background
+objectives
+Scope of Works
+## Out of scope
+## Implementation requirements
+Validation Checklist
+## Completion report
 ```
 
-보고서는 성공과 실패 모두 생성한다.
-실행 정보에는 run ID, 시작·종료 시각, 종료 코드, timeout 여부를 적는다.
-로그 전문 대신 요약과 로그 식별자를 기록한다.
+Write goals with verifiable results.
+In the scope of work, write only accessible project relative paths.
+The completion checklist includes testing, change files, and generating reports.
+External system changes specify the permissions required and the behavior in the event of failure.
 
-## 12. 상태 전이
+## 11. Report Body Specification
+
+*Implementation status: implemented*
+
+```markdown
+Task Report
+Results
+Changes
+## Validation results
+## Run information
+## Remaining issues
+```
+
+Reports generate both successes and failures.
+In the execution information, write the run ID, start and end time, end code, and timeout.
+Log summaries and log identifiers instead of full text.
+
+## 12. Status transition
+
+*Implementation status: implemented*
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending: 발주
-  pending --> in-progress: 선행 완료 + 슬롯 확보
-  in-progress --> done: 성공 + 보고서
-  in-progress --> failed: 실패/타임아웃 + 보고서
-  failed --> pending: 사용자 재시도
+[*] --> pending: ordering
+pending --> in-progress: preceding completion + slots secured
+in-progress --> done: Success + Report
+in-progress --> failed: failure/timeout + report
+failed --> pending: user retry
   done --> [*]
 ```
 
-상태 전이는 같은 마운트 안에서 원자적 `rename`으로 수행한다.
-이동 전 목적 파일 부재를 확인하고 덮어쓰기를 금지한다.
-rename 성공 뒤 DB 상태를 갱신한다.
-DB 갱신 실패 시 조정기가 실제 디렉터리를 기준으로 DB를 수정한다.
-`done`에서 직접 `in-progress`로 되돌리지 않고 새 run을 위한 재시도를 발행한다.
+State transitions are performed with an atomic `rename` within the same mount.
+Check the object file member before moving and prohibit overwriting.
+update DB status after rename success.
+When DB update fails, the regulator modifies the DB based on the actual directory.
+Issue a retry for a new run without reverting from `done` to `in-progress` directly.
 
-## 13. 의존성
+## 13. Dependencies
 
-`pre-task: null`이면 독립 작업이다.
-값이 있으면 같은 프로젝트의 정확한 파일명을 참조해야 한다.
-선행 작업 파일이 `done/`에 있을 때만 픽업할 수 있다.
-선행 작업이 `failed/`이면 후속 작업은 pending에 남고 차단 사유를 표시한다.
-자기 참조와 순환 참조는 생성 시 거부한다.
-`next-task`는 성공 시 존재하는 후속 초안을 pending으로 enqueue하는 힌트다.
+*Implementation status: partial*
 
-## 14. guide 규격
+`pre-task: null` is a stand-alone operation.
+If a value exists, the exact filename of the same project must be referenced
+It can only be picked up when the preceding work file is in `done/`.
+If the precedent task is` failed/`, the follow-up task will remain in pending and indicate the reason for blocking.
+Self-references and circular references are rejected at creation.
+`next-task' is a hint to enqueue the subsequent draft that exists upon success into pending.
 
-`{project}.guide.md`는 ClaudeQ의 프로젝트 지침 역할을 대체한다.
-챗봇 프롬프트 작성과 워커 실행 전에 항상 로드한다.
-사용자 공통 지침 뒤, 작업지시서 앞에 배치한다.
+## 14. guide Specifications
+
+*Implementation status: partial*
+
+`{project} .guide.md` replaces the project guidance role in ClaudeQ.
+Always load before creating chatbot prompts and executing workers.
+After the user's common instructions, place them in front of the work order.
 
 ```markdown
-# 프로젝트 지침
-## 프로젝트 목적
-## 기술 스택과 구조
-## 작업 규칙
-## 보안과 금지사항
-## 테스트와 검증
-## 배포 규칙
-## 완료 정의
+# Project Instructions
+Project Purpose:
+## Technology stack and structure
+## Task rules
+## Security and prohibitions
+## Testing and validation
+## Deployment rules
+## Definition of completion
 ```
 
-| 섹션 | 필수 | 내용 |
+| Section | Required | Content |
 |---|---|---|
-| 프로젝트 목적 | 예 | 목표와 사용자 |
-| 기술 스택과 구조 | 예 | 런타임, 프레임워크, 주요 경로 |
-| 작업 규칙 | 예 | 스타일과 변경 원칙 |
-| 보안과 금지사항 | 예 | 민감정보, 금지 작업 |
-| 테스트와 검증 | 예 | 필수 명령과 체크 |
-| 배포 규칙 | 아니오 | 배포 단계와 승인 |
-| 완료 정의 | 예 | 보고와 산출물 기준 |
+| Project purpose | Example | Goals and users |
+| Technology Stack and Structure | Example | Runtime, Framework, Key Paths |
+| Working Rules | Examples | Style and Change Principles |
+| Security and Prohibitions | Yes | Sensitive Information, Prohibited Actions |
+| Test and Verify | Yes | Mandatory commands and checks |
+| Deployment rules | No | Deployment steps and approvals |
+| Definition of Completion | Example | Reporting and Output Criteria |
 
-guide 변경은 이후 생성·실행되는 작업부터 적용한다.
-재현성을 위해 task_run에는 사용한 guide의 SHA-256을 저장한다.
+the changes to the guide are applied from the tasks that are created and executed afterwards.
+For reproducibility, save the SHA-256 of the used guide in task_run.
 
-## 15. 핸드오버 문서
+## 15. Handover Document
 
-`{project}.next.md`는 컨텍스트 70% 도달 시 원자적으로 갱신한다.
-현재 목표, 확정 결정, 최근 작업, 열린 질문, 다음 행동을 포함한다.
-대화 원문이나 비밀값을 복제하지 않는다.
-새 세션은 guide, proposal, next 순서로 읽고 연속성을 복원한다.
+*Implementation status: partial*
 
-## 16. 동기화와 감사
+`{project} .next.md` will update atomically when context reaches 70%.
+Include current goals, confirmation decisions, recent work, open questions, and the following actions:
+Do not duplicate the original dialogue text or secret values.
+The new session reads in the following order: guide, proposal, next, and restores continuity.
 
-파일 감시 이벤트만 신뢰하지 않고 주기적 전체 조정을 병행한다.
-파일 해시는 외부 수정과 DB 불일치를 판별한다.
-파싱 실패 파일은 이동하지 않고 오류를 운영 로그에 남긴다.
-모든 상태 변경은 actor, 이전·다음 경로, 시각을 감사 로그에 기록한다.
+## 16. Synchronization and audit
 
-## 17. 검증 체크리스트
+*Implementation status: partial*
 
-- 모든 경로가 `APMS_DATA_ROOT` 내부다.
-- 사용자와 프로젝트 slug가 DB 소유권과 일치한다.
-- 작업 파일명이 날짜·번호 규칙을 만족한다.
-- frontmatter 필수 필드와 본문이 유효하다.
-- 한 작업 파일이 하나의 상태 디렉터리에만 있다.
-- 보고서가 대응 작업 날짜·번호를 공유한다.
-- 상태 이동은 같은 파일시스템의 원자 rename이다.
-- 시크릿이 Markdown 문서에 포함되지 않는다.
+Carry out periodic full adjustments without trusting only the file monitoring events.
+The file hash determines the DB mismatch with the external modification.
+The parsing failure file does not move and leaves the error in the operational log.
+All status changes will record the actor, previous and next paths, and time in the audit log.
+
+## 17. Validation checklist
+
+*Implementation status: partial*
+
+- All paths are inside `APMS_data_root`.
+- User and project slug match DB ownership.
+- The working file name satisfies the date and number rules.
+- The frontmatter required fields and body are valid.
+- There is only one working file in one state directory.
+- The report shares the date and number of the corresponding task.
+- The state move is an atomic rename of the same filesystem.
+- Incognito is not included in the Markdown document.

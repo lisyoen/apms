@@ -1,73 +1,79 @@
-# APMS REST API 설계
+# APMS rest API design
 
-## 1. 공통 계약
+## 1. Common Agreement
 
-기본 경로는 `/api/v1`이고 JSON을 사용한다. P2 대시보드 전환 기간에는 이슈 #003에 명시된 `/api/projects`, `/api/md/share` 비버전 경로를 우선 제공하며, `/api/v1` 별칭은 후속 호환 계층에서 추가한다.
-Markdown 원문 다운로드만 `text/markdown`을 반환한다.
-인증은 HttpOnly, Secure, SameSite 쿠키 기반 세션이다.
-일반 사용자는 자기 리소스만, 관리자는 명시된 관리 리소스를 조회한다.
+*Implementation status: partial*
 
-| 항목 | 규칙 |
+The default path is`/api/v1 `and use JSON. During the P2 dashboard transition period, the`/api/projects`, `/api/md/share` non-version paths outlined in issue # 003 will first be provided, and the `/api/v1` alias will be added in the backwards compatibility hierarchy.
+Only the original Markdown download returns` text/markdown `.
+Authentication is a HttpOnly, Secure, SameSite cookie-based session.
+The average user views only their own resources, while the administrator views the specified administrative resources.
+
+| Items | Rules |
 |---|---|
-| ID | UUID 문자열 |
-| 시각 | ISO 8601 UTC |
-| 페이지 | `cursor`, `limit` 기본 20 최대 100 |
-| 멱등성 | 생성 요청에 `Idempotency-Key` 권장 |
-| 오류 | code, message, details, request_id |
-| 버전 | URL major version |
+| ID | UUID string |
+| Time | ISO 8601 UTC |
+| page | `cursor`, `limit` default 20 up to 100 |
+| Idempotency | `Idempotency-Key` recommended for creation requests |
+| Error | code, message, details, request_id |
+| Version | URL major version |
 
 ```json
 {
   "error": {
     "code": "validation_error",
-    "message": "요청을 확인해 주세요.",
-    "details": [{"field": "timeout_min", "reason": "1 이상이어야 합니다."}],
+"message": "Please confirm your request.",
+"details": [{"field": "timeout_min", "reason": "Must be at least 1."}],
     "request_id": "req_example"
   }
 }
 ```
 
-주요 상태 코드는 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500이다.
-권한 없음과 다른 사용자 리소스 미존재는 정보 노출을 막기 위해 404로 통일할 수 있다.
+The major status codes are 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500.
+Unauthorized and other non-existent user resources may unify to 404 to prevent information disclosure.
 
-## 2. 엔드포인트 요약
+## 2. Endpoint Summary
 
-| Method | Path | 권한 | 설명 |
+*Implementation status: partial*
+
+| Method | Path | Permissions | Description |
 |---|---|---|---|
-| POST | `/auth/login` | 공개 | 로그인 |
-| POST | `/auth/logout` | user | 로그아웃 |
-| GET | `/auth/me` | user | 현재 계정 |
-| GET | `/users` | admin | 사용자 목록 |
-| POST | `/users` | admin | 사용자 생성 |
-| PATCH | `/users/{userId}` | admin | 역할·상태 변경 |
-| DELETE | `/users/{userId}` | admin | 사용자 비활성화 |
-| GET | `/projects` | user | 프로젝트 목록/카드 데이터 |
-| POST | `/projects` | user | 프로젝트 생성 |
-| GET | `/projects/{projectId}` | user | 프로젝트 상세 |
-| PATCH | `/projects/{projectId}` | user | 이름·보기 방식 수정 |
-| DELETE | `/projects/{projectId}` | user | 프로젝트 archive |
-| GET | `/projects/{projectId}/tasks` | user | 상태별 작업 목록 |
-| POST | `/projects/{projectId}/tasks/from-chat` | user | 챗봇 발주 |
-| POST | `/tasks/{taskId}/move` | user | 허용 상태 전이 |
-| GET | `/tasks/{taskId}/report` | user | 최신 보고서 |
-| GET | `/workers/status` | admin | 워커·큐 상태 |
-| GET | `/workers/config` | admin | 워커 설정 |
-| PATCH | `/workers/config` | admin | 워커 설정 변경 |
-| GET | `/usage` | user | 자기 사용량 |
-| GET | `/admin/usage` | admin | 전체 사용량 |
-| GET | `/llm-connections` | admin | 연결 목록 |
-| POST | `/llm-connections` | admin | 연결 생성 |
-| PATCH | `/llm-connections/{id}` | admin | 연결 수정 |
-| DELETE | `/llm-connections/{id}` | admin | 연결 비활성화 |
-| GET | `/settings` | user | 계정 설정 |
-| PUT | `/settings/{key}` | user | 계정 설정 upsert |
-| DELETE | `/settings/{key}` | user | 계정 설정 삭제 |
-| GET | `/md` | user | Markdown 보기 |
-| POST | `/md/share-links` | user | 공유 링크 생성 |
-| DELETE | `/md/share-links/{id}` | user | 공유 링크 폐기 |
-| GET | `/md/download` | user/share | Markdown 다운로드 |
+| post | `/auth/login` | Public | Login |
+| post | `/auth/logout` | user | Logout |
+| get | `/auth/me` | user | Current account |
+| get | `/users` | admin | User list |
+| post | `/users` | admin | Create user |
+| patch | `/users/{userId}` | admin | Change role/status |
+| delete | `/users/{userId}` | admin | Deactivate user |
+| get | `/projects` | user | Project list/card data |
+| post | `/projects` | user | Create Project |
+| get | `/projects/{projectId}` | user | Project details |
+| patch | `/projects/{projectId}` | user | Edit name · view mode |
+| delete | `/projects/{projectId}` | user | project archive |
+| get | `/projects/{projectId}/tasks` | user | Task list by status |
+| post | `/projects/{projectId}/tasks/from-chat` | user | Chatbot Order |
+| post | `/tasks/{taskId}/move` | user | Allowed state transitions |
+| get | `/tasks/{taskId}/report` | user | Latest reports |
+| get | `/workers/status` | admin | worker · cue status |
+| get | `/workers/config` | admin | worker Settings |
+| patch | `/workers/config` | admin | Change worker Settings |
+| get | `/usage` | user | Self Usage |
+| get | `/admin/usage` | admin | Total usage |
+| get | `/llm-connections` | admin | Connections list |
+| post | `/llm-connections` | admin | Create connection |
+| patch | `/llm-connections/{id}` | admin | Edit connection |
+| delete | `/llm-connections/{id}` | admin | Disable connection |
+| get | `/settings` | user | Account Settings |
+| put | `/settings/{key}` | user | Account settings upsert |
+| delete | `/settings/{key}` | user | Delete account settings |
+| get | `/md` | user | View Markdown |
+| post | `/md/share-links` | user | Create share link |
+| delete | `/md/share-links/{id}` | user | Revoke share link |
+| get | `/md/download` | user/share | Markdown Download |
 
-## 3. 인증
+## 3. Authentication
+
+*Implementation status: implemented*
 
 ### POST `/auth/login`
 
@@ -79,21 +85,23 @@ Markdown 원문 다운로드만 `text/markdown`을 반환한다.
 {"user":{"id":"uuid","email":"user@example.com","role":"user"}}
 ```
 
-성공 시 세션 쿠키를 설정한다.
-실패 메시지는 계정 존재 여부를 구분하지 않는다.
-IP와 계정 기준 rate limit을 적용한다.
+Sets the session cookie on success.
+Failure messages do not distinguish whether an account exists.
+Apply the rate limit based on IP and account.
 
 ### POST `/auth/logout`
 
-요청 본문은 없고 세션을 폐기한 뒤 204를 반환한다.
+There is no request body and returns 204 after discarding the session.
 
 ### GET `/auth/me`
 
 ```json
-{"id":"uuid","email":"user@example.com","display_name":"사용자","role":"user"}
+{"id": "uuid", "email": "user@example.com", "display_name": "User", "role": "user"}
 ```
 
-## 4. 사용자 관리
+## 4. User management
+
+*Implementation status: partial*
 
 ### GET `/users?cursor=&limit=20&role=user&status=active`
 
@@ -104,7 +112,7 @@ IP와 계정 기준 rate limit을 적용한다.
 ### POST `/users`
 
 ```json
-{"email":"new@example.com","display_name":"새 사용자","role":"user","temporary_password":"one-time-value"}
+{"email": "new@example.com", "display_name": "New User", "role": "user", "temporary_password": "one-time-value"}
 ```
 
 ```json
@@ -117,13 +125,15 @@ IP와 계정 기준 rate limit을 적용한다.
 {"role":"admin","disabled":false}
 ```
 
-자기 자신의 마지막 관리자 권한 제거는 409로 거부한다.
+Reject the removal of his or her last administrator privilege to 409.
 
 ### DELETE `/users/{userId}`
 
-물리 삭제 대신 비활성화하고 204를 반환한다.
+Deactivate instead of deleting the physics and return 204.
 
-## 5. 프로젝트
+## 5. Project
+
+*Implementation status: partial*
 
 ### GET `/projects?view=card&cursor=&limit=20`
 
@@ -147,7 +157,7 @@ IP와 계정 기준 rate limit을 적용한다.
 {"id":"uuid","name":"Sample App","slug":"sample-app","documents_initialized":true}
 ```
 
-생성 시 프로젝트 docs 5종과 tasks 상태 디렉터리를 초기화한다.
+Initialize the state directory with 5 types of project docs and tasks when created.
 
 ### GET `/projects/{projectId}`
 
@@ -161,35 +171,37 @@ IP와 계정 기준 rate limit을 적용한다.
 {"name":"Renamed App","view_mode":"list"}
 ```
 
-slug 변경은 파일 경로 이동을 수반하므로 P1 API에서 허용하지 않는다.
+changing the slug involves moving the file path and is not allowed by the P1 API.
 
 ### DELETE `/projects/{projectId}`
 
-실행 중 작업이 있으면 409, 아니면 archive 후 204를 반환한다.
+If there is a job running, it returns 409, otherwise 204 after archive.
 
-## 6. 작업
+## 6. Tasks
+
+*Implementation status: partial*
 
 ### GET `/projects/{projectId}/tasks?status=pending&cursor=&limit=20`
 
 ```json
 {
   "items":[{
-    "id":"uuid","filename":"20260909-001-task.md","title":"로그인 수정",
+"id": "uuid", "filename": "20260909-001-task.md", "title": "Modify Login",
     "status":"pending","pre_task_id":null,"next_task_id":null,"created_at":"2026-09-09T06:00:00Z"
   }],
   "next_cursor":null
 }
 ```
 
-`status`는 쉼표로 복수 지정할 수 있으며 생략하면 전체다.
+`status` can be specified as multiple commas, if omitted, the whole.
 
 ### POST `/projects/{projectId}/tasks/from-chat`
 
 ```json
 {
   "session_id":"uuid",
-  "message":"로그인 실패 원인을 수정하고 테스트해 줘",
-  "context":[{"role":"user","content":"재현 조건은 ..."}],
+"message": "Fix the login failure and test it",
+"context": [{"role": "user", "content": "Reproduction conditions are..."}],
   "pre_task_id":null,
   "next_task_id":null,
   "timeout_min":20
@@ -204,29 +216,31 @@ slug 변경은 파일 경로 이동을 수반하므로 P1 API에서 허용하지
 }
 ```
 
-서버는 소유권, 세션 프로젝트, 의존성, timeout 범위를 검증한다.
-LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한다.
-동일 Idempotency-Key 재요청은 최초 응답을 반환한다.
+The server verifies ownership, session project, dependencies, and timeout scope.
+After LLM output verification, pending file atom generation and tasks upsert are performed.
+The same Idempotency-Key re-request will return the initial response.
 
 ### POST `/tasks/{taskId}/move`
 
 ```json
-{"to":"pending","reason":"문제 수정 후 재시도"}
+{"to": "pending", "reason": "Fix the problem and try again"}
 ```
 
-사용자에게 허용되는 대표 전이는 failed→pending이다.
-스케줄러 전용 전이는 내부 서비스 자격으로만 호출한다.
+The representative transition allowed for the user is→ failed pending.
+Scheduler-only transitions are called only as internal service entitlements.
 
 ### GET `/tasks/{taskId}/report`
 
 ```json
 {
   "task_id":"uuid","run_id":"uuid","status":"failed",
-  "filename":"20260909-001-report.md","summary":"테스트 실패","download_url":"/api/v1/md/download?token=..."
+"filename": "20260909-001-report.md", "summary": "Test failed", "download_url": "/api/v1/md/download? token =..."
 }
 ```
 
-## 7. 워커
+## 7. workers
+
+*Implementation status: partial*
 
 ### GET `/workers/status`
 
@@ -255,7 +269,9 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 {"poll_interval_sec":3,"global_concurrency":20,"default_timeout_min":30,"effective_at":"2026-09-09T06:01:00Z"}
 ```
 
-## 8. 사용량
+## 8. Usage
+
+*Implementation status: partial*
 
 ### GET `/usage?from=2026-09-01&to=2026-09-30&group_by=project`
 
@@ -269,10 +285,12 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 
 ### GET `/admin/usage?user_id=&project_id=&group_by=user`
 
-응답 형태는 `/usage`와 같고 관리자만 다른 사용자를 필터링할 수 있다.
-날짜 범위 최대값을 두어 고비용 집계를 제한한다.
+The response type is the same as`/usage `and only the administrator can filter other users.
+Place a date range maximum to limit high cost aggregation.
 
-## 9. LLM 연결
+## 9. LLM Connection
+
+*Implementation status: partial*
 
 ### GET `/llm-connections`
 
@@ -286,7 +304,7 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 {"name":"primary","provider":"compatible","base_url":"https://provider.example/v1","default_model":"model-a","api_key":"secret-value"}
 ```
 
-응답에는 `api_key`를 반환하지 않는다.
+The response does not return `api_key`.
 
 ### PATCH `/llm-connections/{id}`
 
@@ -294,13 +312,15 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 {"default_model":"model-b","enabled":true,"api_key":"rotated-value"}
 ```
 
-키 필드가 생략되면 기존 암호문을 유지한다.
+If the key field is omitted, retain the existing ciphertext.
 
 ### DELETE `/llm-connections/{id}`
 
-사용 중인 연결은 비활성화하며 204를 반환한다.
+Deactivate the connection in use and return 204.
 
-## 10. 계정 설정
+## 10. Account settings
+
+*Implementation status: partial*
 
 ### GET `/settings`
 
@@ -314,21 +334,23 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 {"value":true}
 ```
 
-민감 키로 분류된 값은 암호화 저장하고 이후 응답에서 마스킹한다.
+Values classified as sensitive keys are encrypted and stored and then masked in the response.
 
 ### DELETE `/settings/{key}`
 
-계정별 override를 제거하고 204를 반환한다.
+Remove account-specific overrides and return 204.
 
-## 11. Markdown 보기와 공유
+## 11. View and share Markdown
+
+*Implementation status: partial*
 
 ### GET `/md?project_id={id}&kind=guide`
 
 ```json
-{"path":"sample-app/docs/sample-app.guide.md","content":"# 프로젝트 지침\n...","sha256":"hex","updated_at":"2026-09-09T06:00:00Z"}
+{"path": "sample-app/docs/sample-app.guide.md", "content": "# Project instructions\ n...", "sha256": "hex", "updated_at": "2026-09-09T 06:00:00 Z"}
 ```
 
-임의 절대 경로 입력은 받지 않고 project ID와 문서 kind 또는 task ID로 해석한다.
+Random absolute path input is not received and is interpreted as project ID and document kind or task ID.
 
 ### POST `/md/share-links`
 
@@ -340,37 +362,39 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 {"id":"uuid","url":"https://apms.craftbay.io/share/random-token","expires_at":"2026-09-10T06:00:00Z"}
 ```
 
-공유 토큰 원문은 생성 응답에서 한 번만 제공하고 DB에는 hash를 저장한다.
+The original shared token will only be provided once in the generated response and the hash will be stored in the DB.
 
 ### DELETE `/md/share-links/{id}`
 
-소유자 또는 관리자가 링크를 폐기하고 204를 반환한다.
+The owner or manager discards the link and returns 204.
 
 ### GET `/md/download?project_id={id}&kind=proposal`
 
-인증 세션 또는 유효한 공유 토큰을 요구한다.
-응답은 `text/markdown; charset=utf-8`과 안전한 attachment 파일명을 사용한다.
+Require an authentication session or a valid shared token.
+The response uses` text/markdown; charset = utf-8 `and a secure attachment file name.
 
-## 12. 챗봇 발주 프롬프트 계약
+## 12. Chatbot Order Prompt Contract
 
-LLM 입력은 시스템 규칙, project guide, 제한된 대화 컨텍스트, 현재 사용자 요청 순서다.
-서버가 신뢰 경계를 표시하고 문서 안의 프롬프트 인젝션을 데이터로 취급한다.
+*Implementation status: partial*
 
-| 입력 | 필수 | 설명 |
+LLM inputs are system rules, project guide, restricted conversation context, and current user request sequence.
+The server marks the trust boundary and treats the prompt injection inside the document as data.
+
+| Input | Required | Description |
 |---|---|---|
-| `user` | 예 | slug와 권한 범위 |
-| `project` | 예 | slug와 프로젝트 메타데이터 |
-| `project_guide` | 예 | guide 원문과 hash |
-| `conversation_context` | 예 | 순서 있는 role/content 배열 |
-| `request` | 예 | 최신 사용자 발주 의도 |
-| `dependencies` | 아니오 | 허용된 pre/next 후보 |
-| `constraints` | 예 | timeout, 파일 규격, 보안 정책 |
+| `user` | Yes | Slug and scope |
+| `project` | Example | Slug and project metadata |
+| `project_guide` | Yes | hash with original guide text |
+| `conversation_context` | Yes | Ordered role/content array |
+| `request` | Yes | Latest User Order Intent |
+| `dependencies` | No | Allowed pre/next candidates |
+| `constraints` | Yes | timeout, file dimensions, security policy |
 
-모델 출력은 Markdown 작업지시서 하나이며 설명용 코드펜스나 머리말을 포함하지 않는다.
+The model output is a Markdown work order and does not include an explanatory code fence or header.
 
 ```yaml
 ---
-title: 로그인 오류 수정
+title: fix login errors
 project: sample-app
 user: team-user
 pre-task: null
@@ -381,18 +405,20 @@ timeout_min: 20
 ---
 ```
 
-본문 필수 섹션은 `목표`, `작업 범위`, `구현 요구사항`, `검증 체크리스트`, `완료 보고`다.
-모델은 파일명과 번호를 결정하지 않으며 서버가 원자적으로 채번한다.
-모델이 절대 경로, 비밀값, 허용되지 않은 의존성을 출력하면 검증 실패다.
-서버는 frontmatter를 파싱하고 사용자·프로젝트 값을 권위 있는 값으로 대조한다.
-실패 시 최대 한 번 구조화 수정 프롬프트를 보내고, 다시 실패하면 422를 반환한다.
+Required sections of the body are `Objectives`, `Scope of Work`, `Implementation Requirements`, `Validation Checklist`, and `Completion Reporting`.
+The model does not determine the filename and number, and the server does it atomically.
+If the model outputs an absolute path, a secret value, and an unacceptable dependency, the verification fails.
+The server parses the frontmatter and contrasts the user and project values with authoritative values.
+Send a structured correction prompt up to once on failure, or return 422 if it fails again.
 
-## 13. 완료 기준
+## 13. Completion criteria
 
-- 모든 엔드포인트에 method, path, 권한이 정의돼 있다.
-- 사용자와 관리자의 조회 범위가 분리된다.
-- 카드와 목록 보기가 같은 프로젝트 API로 지원된다.
-- 챗봇 발주가 검증된 task Markdown을 생성한다.
-- API Key는 생성 입력 외 응답에 노출되지 않는다.
-- Markdown은 안전한 식별자로만 조회·공유·다운로드된다.
-- 중복 발주와 상태 전이가 멱등적으로 처리된다.
+*Implementation status: partial*
+
+- All endpoints have method, path, and permissions defined.
+- The scope of inquiry between the user and the administrator is separated.
+- Cards and list views are supported by the same project API.
+- Create a task Markdown where the chatbot ordering is verified.
+- API Keys are not exposed to responses other than generated input.
+- Markdown is only viewed, shared and downloaded as a secure identifier.
+- Duplicate orders and state transitions are handled idempotently.

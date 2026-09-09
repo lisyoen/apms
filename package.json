@@ -2,6 +2,7 @@
   "name": "apms",
   "version": "0.1.0",
   "private": true,
+  "description": "Open-source AI Project Management System with project guidance, task queues, and multi-worker execution.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
