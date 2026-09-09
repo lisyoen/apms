@@ -1,2 +1,2 @@
-import { readFile } from "node:fs/promises"; import { ownedProject, jsonError } from "@/lib/api"; import { locateTask } from "@/lib/storage";
+import { readFile } from "node:fs/promises"; import { ownedProject, jsonError } from "@/lib/api"; import { locateTask } from "@/lib/storage/index";
 export async function GET(_:Request,{params}:RouteContext<"/api/projects/[slug]/tasks/[file]">){const{slug,file}=await params;const own=await ownedProject(slug);if("error"in own)return own.error;const found=await locateTask(own.user.storageSlug,slug,file);if(!found)return jsonError("not_found",404);return new Response(await readFile(found.file,"utf8"),{headers:{"Content-Type":"text/markdown; charset=utf-8"}});}
