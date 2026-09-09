@@ -26,7 +26,7 @@
 
 *Implementation status: partial*
 
-기본 폴링 주기는 2초이며 설정 가능 범위는 1~60초다.
+기본 폴링 주기는 10초이며 `APMS_SCHEDULER_INTERVAL_MS`로 설정한다.
 파일 감시 이벤트는 지연 단축용이고 폴링이 정확성의 기준이다.
 매 루프는 만료 lease 복구, pending 스캔, 후보 정렬, 슬롯 배정 순서다.
 
@@ -75,13 +75,13 @@ disabled 사용자와 archived 프로젝트의 작업은 픽업하지 않는다.
 
 전역 실행 슬롯은 20개다.
 슬롯은 task_run이 running이 될 때 획득하고 종료 정리 뒤 반환한다.
-스케줄러가 여러 인스턴스면 PostgreSQL advisory lock과 행 lease를 사용한다.
+스케줄러는 세션 수준 PostgreSQL advisory lock을 유지하며, 락 보유자만 폴링하고 `leader_pid`를 게시한다.
 1차 사용자 한도는 전역 한도와 같고, 2차에는 사용자별 한도를 별도 적용한다.
 관리자는 실행 중에도 새 한도를 설정할 수 있으나 기존 작업을 강제 종료하지 않는다.
 
 ## 7. 픽업 트랜잭션
 
-*Implementation status: partial*
+*Implementation status: implemented*
 
 1. 후보 파일과 hash를 읽는다.
 2. DB 행을 `FOR UPDATE SKIP LOCKED`로 잠근다.
@@ -106,11 +106,12 @@ opencode run --format json --file <task-relative-path>
 실제 지원 플래그는 구현 시 고정된 OpenCode 버전의 CLI 도움말로 검증한다.
 실행 파일 경로와 허용 인수는 관리자 설정의 allowlist에서 선택한다.
 작업 디렉터리는 해당 프로젝트의 승인된 checkout 또는 workspace다.
+실제 경로는 `APMS_DATA_ROOT` 또는 `APMS_WORKDIR_ALLOWLIST`의 콜론 구분 절대 루트 아래여야 한다. 심볼릭 링크 탈출은 작업 실패와 보고서 사유로 기록한다.
 작업지시서 경로는 프로젝트 상대 경로로 전달한다.
 
 ## 9. 환경변수
 
-*Implementation status: partial*
+*Implementation status: implemented*
 
 | 변수 | 용도 | 비밀 |
 |---|---|---|
@@ -122,7 +123,7 @@ opencode run --format json --file <task-relative-path>
 | `APMS_REPORT_FILE` | 상대 보고서 파일 | 아니오 |
 | 공급자 키 | LLM 인증 | 예 |
 
-러너는 전체 서버 환경을 상속하지 않고 allowlist 변수를 새 환경에 구성한다.
+러너는 서버에서 `PATH`, `LANG`, `TZ`만 상속한다. 실행 메타데이터는 직접 구성하고 `HOME` 및 XDG data/config/cache 홈은 불변 사용자 slug 아래의 0700 디렉터리로 지정한다. 서버 provider 키와 API key/token 패턴 변수는 상속하지 않으며, 범위별 LLM 자격 주입은 #009 계획이다.
 비밀값은 프로세스 인수, 로그, 보고서에 포함하지 않는다.
 
 ## 10. 로그 캡처

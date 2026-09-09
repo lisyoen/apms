@@ -121,6 +121,7 @@ erDiagram
 |---|---|---|
 | `id` | uuid | PK |
 | `email` | citext | unique, 로그인 ID |
+| `slug` | text | 전역 unique, 불변 파일시스템 식별자 |
 | `password_hash` | text | SSO 전 단계의 단방향 해시 |
 | `role` | user_role | `admin`, `user` |
 | `display_name` | text | nullable |
@@ -128,7 +129,7 @@ erDiagram
 | `updated_at` | timestamptz | 수정 시각 |
 | `disabled_at` | timestamptz | nullable, 로그인 차단 |
 
-이메일은 정규화 후 유일성을 보장한다.
+이메일은 정규화 후 유일성을 보장한다. 생성 시 이메일 로컬파트에서 `slug`를 만들고 충돌하면 숫자 접미사를 붙이며, 이후 변경은 트리거가 거부한다.
 API에서 `password_hash`를 반환하지 않는다.
 3차 SSO에서는 외부 subject 매핑 테이블을 추가할 수 있다.
 
@@ -166,6 +167,7 @@ API에서 `password_hash`를 반환하지 않는다.
 | `next_task_id` | uuid | tasks self FK, nullable |
 | `timeout_min` | integer | 1~1440 |
 | `content_hash` | text | SHA-256 |
+| `lease_until` | timestamptz | nullable, 만료된 픽업은 리더가 failed 처리 |
 | `created_at` | timestamptz | frontmatter와 일치 |
 | `updated_at` | timestamptz | DB 반영 시각 |
 
@@ -190,12 +192,19 @@ DB 상태만 바꿔 파일을 이동하는 동작은 금지한다.
 | `exit_code` | integer | nullable |
 | `failure_reason` | text | nullable, 정제된 요약 |
 | `guide_hash` | text | 실행 시 지침 해시 |
-| `lease_expires_at` | timestamptz | 복구 기준 |
+| `heartbeat_at` | timestamptz | 실행 중 30초마다 갱신 |
+| `lease_until` | timestamptz | 60초 복구 기준 |
 | `started_at` | timestamptz | 시작 시각 |
 | `finished_at` | timestamptz | 종료 시각 |
 
 유일 제약은 `(task_id, attempt)`다.
 실행 로그는 append-only이며 완료 행을 덮어쓰지 않는다.
+
+## 7.1 login_attempts
+
+*Implementation status: implemented*
+
+`login_attempts`는 정규화 이메일, 클라이언트 IP, 결과와 시각을 이동 잠금 구간 동안 기록한다. 15분 내 5회 실패하면 구간 만료 전까지 이후 요청에 HTTP 429를 반환하며, 성공 로그인은 같은 IP+이메일 실패 기록을 지운다.
 
 ## 8. sessions
 

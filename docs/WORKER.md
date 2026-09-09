@@ -26,7 +26,7 @@ The global default concurrency is 20 and the working default timeout is 20 minut
 
 *Implementation status: partial*
 
-The default polling period is 2 seconds, with a configurable range of 1 to 60 seconds.
+The default polling period is 10 seconds and is configurable with `APMS_SCHEDULER_INTERVAL_MS`.
 File monitoring events are for shorter delays and polling is the criterion for accuracy.
 Every loop is in the order of expiry lease recovery, pending scan, candidate alignment, and slot assignment.
 
@@ -75,13 +75,13 @@ The precedence status is based on the file location, and the DB is used for fast
 
 There are 20 global execution slots.
 The slot is acquired when task_run is running and returned after the exit cleanup.
-If the scheduler is multiple instances, use PostgreSQL advisory lock and row lease.
+The scheduler retains a session-level PostgreSQL advisory lock; only its holder polls and publishes `leader_pid`.
 The first user limit is the same as the global limit, and the second user limit is applied separately.
 Administrators can set new limits while running, but do not force quit existing tasks.
 
 ## 7. Pickup transactions
 
-*Implementation status: partial*
+*Implementation status: implemented*
 
 1. Read the candidate file and hash.
 2. Lock the DB row with `for update skip locked`.
@@ -106,11 +106,12 @@ opencode run --format json --file <task-relative-path>
 The actual support flags are validated with a fixed version of the OpenCode CLI help at implementation.
 Select the executable path and allow arguments from the allowlist in the admin settings.
 The working directory is the approved checkout or workspace for that project.
+Its real path must be below `APMS_DATA_ROOT` or a colon-delimited absolute root in `APMS_WORKDIR_ALLOWLIST`; symlink escapes fail the task and are recorded in its report.
 The work order path is communicated to the project relative path.
 
 ## 9. Environment variables
 
-*Implementation status: partial*
+*Implementation status: implemented*
 
 | Variables | Uses | Secrets |
 |---|---|---|
@@ -122,7 +123,7 @@ The work order path is communicated to the project relative path.
 | `APMS_report_file` | Relative report file | No |
 | Supplier Key | LLM Authentication | Yes |
 
-The runner configures the allowlist variable in the new environment without inheriting the entire server environment.
+The runner inherits only `PATH`, `LANG`, and `TZ`. It constructs run metadata itself and maps `HOME` plus the XDG data/config/cache homes to mode-0700 directories under the immutable user slug. Server provider keys and wildcard API-key/token variables are never inherited; scoped LLM credential injection remains planned for #009.
 Secret values are not included in process arguments, logs, or reports.
 
 ## 10. Capture logs

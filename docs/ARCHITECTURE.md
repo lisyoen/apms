@@ -135,13 +135,12 @@ Most concrete boundaries exist. Formal leases, durable retries, and the shared M
 
 Passwords use one-way hashes.
 LLM API keys use application-layer encryption and must never appear in logs or responses.
-Document and task paths are normalized under the data root.
-Share links are read-only and expire.
+Document/task paths and worker realpaths are confined to the data root or administrator allowlist.
+Share links are read-only and expire after a configurable seven-day default.
 Admin APIs require the `admin` role; users may access only owned resources.
-Workers should receive only credentials needed by their run.
+Workers receive a fresh allowlisted environment and isolated HOME/XDG directories, without server API keys or tokens.
 
-Authentication, ownership checks, encrypted LLM connections, data-root document paths, and seven-day share expiry are implemented.
-Rate limiting, immutable user slugs, a write-only secret store, strict worker credential isolation, and restricting configured workdirs to an allowlist are planned.
+Authentication includes a 12-hour renewable JWT and a five-failure, 15-minute IP-plus-email lockout. Immutable unique user slugs, strict worker environment isolation, and configured-workdir confinement are implemented. The write-only secret store and #009 run-scoped LLM credential injection remain planned.
 
 ## 8. Reliability and recovery
 
@@ -149,15 +148,14 @@ Rate limiting, immutable user slugs, a write-only secret store, strict worker cr
 
 | Situation | Recovery policy |
 |---|---|
-| Scheduler restart | Recover orphaned in-progress work. |
+| Scheduler restart | The elected leader fails expired in-progress leases and creates diagnostic reports. |
 | Worker crash | Close the run as failed and create a diagnostic report. |
 | Database outage | Stop new mutations and reconcile partial file success later. |
 | File outage | Stop pickup to avoid greater divergence. |
 | Email outage | Keep work results and retry notification separately. |
 | Duplicate event | Enforce uniqueness by task filename and run attempt. |
 
-Startup orphan recovery, unique run attempts, and durable notification rows exist.
-Lease expiry, notification backoff, and complete partial-failure repair remain incomplete.
+Leader-only startup recovery, 30-second heartbeats, 60-second leases, unique run attempts, and durable notification rows exist. Notification backoff and complete partial-failure repair remain incomplete.
 
 ## 9. Observability
 

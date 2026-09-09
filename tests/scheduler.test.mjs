@@ -12,7 +12,6 @@ process.env.APMS_WORKER_RUNNER = "dummy";
 delete process.env.APMS_SMTP_URL;
 const { Scheduler } = await import("../src/worker/scheduler.ts");
 const { DummyRunner } = await import("../src/worker/runner-dummy.ts");
-const { userSlug } = await import("../src/lib/storage/index.ts");
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 let serial = 0;
 let currentFixture;
@@ -24,10 +23,10 @@ afterEach(async () => { if (currentFixture) { await currentFixture.scheduler.sto
 async function fixture() {
   serial++;
   const email = `scheduler-test-${Date.now()}-${serial}@example.invalid`;
-  const user = (await pool.query("INSERT INTO users(email,password_hash) VALUES($1,'test') RETURNING id,email", [email])).rows[0];
+  const user = (await pool.query("INSERT INTO users(email,password_hash) VALUES($1,'test') RETURNING id,email,slug", [email])).rows[0];
   const slug = `project-${serial}`;
   const project = (await pool.query("INSERT INTO projects(owner_id,name,slug) VALUES($1,$2,$3) RETURNING id,name,slug", [user.id, `Project ${serial}`, slug])).rows[0];
-  const storageUser = userSlug(email, user.id);
+  const storageUser = user.slug;
   const base = path.join(root, storageUser, slug);
   for (const dir of ["pending", "in-progress", "done", "failed", "reports"]) await mkdir(path.join(base, "tasks", dir), { recursive: true });
   await mkdir(path.join(base, "docs"), { recursive: true });

@@ -14,6 +14,7 @@ export type TaskSpec = {
 
 export type RunContext = {
   cwd: string;
+  env: Record<string, string | undefined>;
   guide: string;
   reportPath: string;
   startedAt: Date;

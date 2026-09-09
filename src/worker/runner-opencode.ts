@@ -23,7 +23,7 @@ export class OpenCodeRunner implements WorkerRunner {
       const child = spawn(this.bin, ["-p", prompt, "-f", "text", "-q"], {
         cwd: ctx.cwd,
         detached: process.platform !== "win32",
-        env: { NODE_ENV: process.env.NODE_ENV, ...Object.fromEntries(Object.entries(process.env).filter(([key]) => /^(PATH|HOME|LANG|LC_|TERM|XDG_|OPENCODE_|OPENAI_|ANTHROPIC_|APMS_(TASK|RUN|USER|PROJECT|REPORT))/.test(key))) } as NodeJS.ProcessEnv,
+        env: ctx.env as NodeJS.ProcessEnv,
         stdio: ["ignore", "pipe", "pipe"] as const,
       });
       ctx.onSpawn?.(child.pid ?? 0);

@@ -121,6 +121,7 @@ erDiagram
 |---|---|---|
 | `id` | uuid | PK |
 | `email` | citext | unique, login ID |
+| `slug` | text | Globally unique, immutable filesystem identity |
 | `password_hash` | text | One-way hash before SSO |
 | `role` | user_role | `admin`, `user` |
 | `display_name` | text | nullable |
@@ -128,7 +129,7 @@ erDiagram
 | `updated_at` | timestamptz | Edit time |
 | `disabled_at` | timestamptz | nullable, blocking login |
 
-Email guarantees uniqueness after normalization.
+Email guarantees uniqueness after normalization. On insert, `slug` is derived from the email local part and receives a numeric suffix on collision; a trigger rejects later changes.
 API does not return `password_hash`.
 In tertiary SSO, an external subject mapping table can be added.
 
@@ -166,6 +167,7 @@ Deletion is handled by default for file preservation.
 | `next_task_id` | uuid | tasks self FK, nullable |
 | `timeout_min` | integer | 1~1440 |
 | `content_hash` | text | SHA-256 |
+| `lease_until` | timestamptz | nullable; expired claims are failed by the leader |
 | `created_at` | timestamptz | matches frontmatter |
 | `updated_at` | timestamptz | DB reflection time |
 
@@ -190,12 +192,19 @@ Dependencies restrict to the same project and deny circulation in the applicatio
 | `exit_code` | integer | nullable |
 | `failure_reason` | text | nullable, refined summary |
 | `guide_hash` | text | Instructions hash on launch |
-| `lease_expires_at` | timestamptz | Recovery Criteria |
+| `heartbeat_at` | timestamptz | Updated every 30 seconds while running |
+| `lease_until` | timestamptz | 60-second recovery deadline |
 | `started_at` | timestamptz | Start time |
 | `finished_at` | timestamptz | End time |
 
 The only constraint is` (task_id, attempt) `.
 The execution log is append-only and does not overwrite the completion line.
+
+## 7.1 login_attempts
+
+*Implementation status: implemented*
+
+`login_attempts` records normalized email, client IP, outcome, and timestamp for the rolling lockout window. Five failures within 15 minutes cause subsequent attempts to return HTTP 429 until the window expires; a successful login clears the matching IP-and-email failures.
 
 ## 8. sessions
 
