@@ -16,6 +16,7 @@ import {
   clampChatPanelWidth,
   restoredChatPanelWidth,
 } from "./panel-width";
+import { isNearBottom } from "./scroll";
 import "./ChatPanel.css";
 
 export type ChatPanelLayout = "page" | "panel" | "fullscreen";
@@ -181,6 +182,9 @@ export default function ChatPanel({
     [messages, setMessages] = useState<Message[]>([]),
     [input, setInput] = useState(initialPrompt),
     [busy, setBusy] = useState(false),
+    [showLatest, setShowLatest] = useState(false),
+    [unreadMessages, setUnreadMessages] = useState(0),
+    [copiedMessage, setCopiedMessage] = useState<string | null>(null),
     [notice, setNotice] = useState(""),
     [llmStatus, setLlmStatus] = useState<LlmStatus | null>(
       llmConfigured
@@ -192,7 +196,12 @@ export default function ChatPanel({
           },
     );
   const root = useRef<HTMLElement>(null),
+    conversation = useRef<HTMLDivElement>(null),
     bottom = useRef<HTMLDivElement>(null),
+    nearBottom = useRef(true),
+    forceNextScroll = useRef(false),
+    previousMessages = useRef<Message[]>([]),
+    copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     dragging = useRef(false),
     width = useRef(DEFAULT_CHAT_PANEL_WIDTH);
   const load = useCallback(async () => {
@@ -208,6 +217,7 @@ export default function ChatPanel({
       if (!r.ok) return;
       const data = await r.json(),
         opened = { ...session, ...data.session };
+      forceNextScroll.current = true;
       setActive(opened);
       setMessages(data.messages);
       setNotice("");
@@ -248,8 +258,31 @@ export default function ChatPanel({
     void open(sessions.find((s) => s.id === saved) || sessions[0]);
   }, [active, open, projectSlug, sessions]);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    const previous = previousMessages.current;
+    const changed =
+      messages.length !== previous.length ||
+      messages.at(-1)?.content !== previous.at(-1)?.content;
+    previousMessages.current = messages;
+    if (!changed && !notice) return;
+    if (forceNextScroll.current || nearBottom.current) {
+      forceNextScroll.current = false;
+      bottom.current?.scrollIntoView({ behavior: "smooth" });
+      nearBottom.current = true;
+      setShowLatest(false);
+      setUnreadMessages(0);
+      return;
+    }
+    setShowLatest(true);
+    setUnreadMessages((count) =>
+      count + Math.max(1, messages.length - previous.length),
+    );
   }, [messages, notice]);
+  useEffect(
+    () => () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    },
+    [],
+  );
   useEffect(() => {
     const receive = (event: Event) => {
       const prompt = (event as CustomEvent<{ prompt: string }>).detail?.prompt;
@@ -361,6 +394,7 @@ export default function ChatPanel({
     if (!text || !active || active.status !== "active" || busy) return;
     setInput("");
     setBusy(true);
+    forceNextScroll.current = true;
     const optimistic = `pending-${Date.now()}`;
     setMessages((v) => [
       ...v,
@@ -435,6 +469,39 @@ export default function ChatPanel({
     await load();
     setBusy(false);
   }
+  function handleConversationScroll() {
+    if (!conversation.current) return;
+    const nextNearBottom = isNearBottom(conversation.current);
+    nearBottom.current = nextNearBottom;
+    setShowLatest(!nextNearBottom);
+    if (nextNearBottom) setUnreadMessages(0);
+  }
+  function scrollToLatest() {
+    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    nearBottom.current = true;
+    setShowLatest(false);
+    setUnreadMessages(0);
+  }
+  async function copyMessage(content: string, key: string) {
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(content);
+      copied = true;
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.className = "clipboard-fallback";
+      document.body.appendChild(textarea);
+      textarea.select();
+      copied = document.execCommand("copy");
+      textarea.remove();
+    }
+    if (!copied) return;
+    setCopiedMessage(key);
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    copyResetTimer.current = setTimeout(() => setCopiedMessage(null), 1500);
+  }
   function submitComposer(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     void send();
@@ -496,7 +563,7 @@ export default function ChatPanel({
         />
       )}
       <div className="chat-main">
-        <header>
+        <header className="chat-sticky-header">
           <div className="chat-session-heading">
             <span className="project-context">{projectName}</span>
             <SessionPicker
@@ -547,7 +614,12 @@ export default function ChatPanel({
             )}
           </div>
         </header>
-        <div className="conversation">
+        <div className="conversation-shell">
+        <div
+          className="conversation"
+          ref={conversation}
+          onScroll={handleConversationScroll}
+        >
           {!active && (
             <div className="empty">
               <h1>무엇을 만들어 볼까요?</h1>
@@ -566,8 +638,27 @@ export default function ChatPanel({
               {formatKstShort(active.created_at || new Date())}
             </div>
           )}
-          {messages.map((message, index) => (
-            <article className={message.role} key={message.id || index}>
+          {messages.map((message, index) => {
+            const messageKey = message.id || `${message.role}-${index}`;
+            const streamingAssistant =
+              busy &&
+              message.role === "assistant" &&
+              index === messages.length - 1;
+            return (
+              <article className={message.role} key={messageKey}>
+                {(message.role === "user" || message.role === "assistant") && (
+                  <button
+                    type="button"
+                    className="message-copy"
+                    aria-label={
+                      copiedMessage === messageKey ? "복사됨" : "메시지 복사"
+                    }
+                    disabled={streamingAssistant}
+                    onClick={() => void copyMessage(message.content, messageKey)}
+                  >
+                    {copiedMessage === messageKey ? "복사됨" : "⧉"}
+                  </button>
+                )}
               {message.role === "assistant" ? (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -592,8 +683,9 @@ export default function ChatPanel({
                   {formatKstShort(message.created_at)}
                 </time>
               )}
-            </article>
-          ))}
+              </article>
+            );
+          })}
           {readOnly && (
             <div className="handover">
               종료된 세션입니다.{" "}
@@ -613,6 +705,26 @@ export default function ChatPanel({
           )}
           {notice && <div className="handover">{notice}</div>}
           <div ref={bottom} />
+        </div>
+        {showLatest && (
+          <button
+            type="button"
+            className="scroll-to-latest"
+            aria-label="최신 메시지로 이동"
+            onClick={scrollToLatest}
+          >
+            <span aria-hidden="true">↓</span>
+            <span>최신으로</span>
+            {unreadMessages > 0 && (
+              <span
+                className="new-message-badge"
+                aria-label={`새 메시지 ${unreadMessages}개`}
+              >
+                {unreadMessages}
+              </span>
+            )}
+          </button>
+        )}
         </div>
         <div className="composer-area">
           {llmStatus && !llmStatus.ok && (

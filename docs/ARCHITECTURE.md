@@ -257,6 +257,8 @@ Desktop project pages use a 420 px side panel with a 6 px left-edge drag handle.
 
 The shared header session picker lists the current project's sessions—or only projectless sessions on `/chat`—by latest message time. It supports creation, inline rename, deletion, and resuming a selected session. Handed-over sessions carry an ended badge, render read-only, and link to their continuation.
 
+The header stays fixed while only the message list scrolls. New content follows automatically only within 80 px of the bottom; otherwise a latest-message control with an unread badge appears. User and completed assistant cards copy their stored raw Markdown `content`, with a legacy clipboard fallback.
+
 ## 14. Shared Markdown editor
 
 *Implementation status: implemented*
