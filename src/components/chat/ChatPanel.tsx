@@ -6,116 +6,37 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import ModeToggle from "@/app/mode-toggle";
+import { CHAT_PANEL_FULLSCREEN_KEY, CHAT_PANEL_WIDTH_KEY, DEFAULT_CHAT_PANEL_WIDTH, MOBILE_CHAT_BREAKPOINT, clampChatPanelWidth, restoredChatPanelWidth } from "./panel-width";
 import "./ChatPanel.css";
 
 export type ChatPanelLayout = "page" | "panel" | "fullscreen";
-type Session = { id:string; title:string; project_name?:string; project_id?:string; project_slug?:string; parent_session_id?:string; status:string; context_tokens:number; context_limit:number };
-type Message = { id?:string; role:string; content:string; metadata?:{cards?:Array<{card?:string}>} };
+type Session = { id:string;title:string;project_name?:string;status:string;context_tokens:number;context_limit:number;last_message_at?:string;continuation?:{id:string;title:string;handover_number:number}|null };
+type Message = { id?:string;role:string;content:string;metadata?:{cards?:Array<{card?:string}>} };
+export function chatSessionStorageKey(projectSlug?: string) { return `apms.chat.session.${projectSlug || "global"}`; }
 
-export function chatSessionStorageKey(projectSlug?: string) {
-  return `apms.chat.session.${projectSlug || "global"}`;
+function SessionPicker({sessions,active,onOpen,onCreate,onRename,onDelete}:{sessions:Session[];active:Session|null;onOpen:(s:Session)=>void;onCreate:()=>void;onRename:(s:Session,t:string)=>Promise<void>;onDelete:(s:Session)=>Promise<void>}) {
+  const [expanded,setExpanded]=useState(false),[editing,setEditing]=useState<string|null>(null),[title,setTitle]=useState("");
+  return <div className="session-picker"><button className="session-picker-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}><span>{active?.title||"세션 선택"}</span><span>▾</span></button>{expanded&&<div className="session-menu" role="menu"><button className="session-create" onClick={()=>{setExpanded(false);onCreate();}}>＋ 새 채팅</button>{sessions.map(session=><div className={`session-menu-item ${active?.id===session.id?"active":""}`} key={session.id}>{editing===session.id?<form onSubmit={e=>{e.preventDefault();void onRename(session,title).then(()=>setEditing(null));}}><input autoFocus maxLength={120} value={title} onChange={e=>setTitle(e.target.value)} aria-label="세션 이름"/><button disabled={!title.trim()}>저장</button><button type="button" onClick={()=>setEditing(null)}>취소</button></form>:<><button className="session-open" role="menuitem" onClick={()=>{setExpanded(false);onOpen(session);}}><span>{session.title}</span><small>{session.last_message_at?new Intl.DateTimeFormat("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(session.last_message_at)):""}</small>{session.status==="handed_over"&&<em>종료</em>}</button><div className="session-item-actions"><button onClick={()=>{setEditing(session.id);setTitle(session.title);}}>이름 변경</button><button onClick={()=>void onDelete(session)}>삭제</button></div></>}</div>)}{!sessions.length&&<p className="session-menu-empty">저장된 세션이 없습니다.</p>}</div>}</div>;
 }
 
-export default function ChatPanel({ projectSlug, layout, user, llmConfigured = true, initialPrompt = "" }: {
-  projectSlug?: string;
-  layout: ChatPanelLayout;
-  user?: { email:string; role:string };
-  llmConfigured?: boolean;
-  initialPrompt?: string;
-}) {
-  const router = useRouter();
-  const [sessions,setSessions] = useState<Session[]>([]);
-  const [projects,setProjects] = useState<Array<{id:string;name:string;slug:string}>>([]);
-  const [projectTitle,setProjectTitle] = useState("");
-  const [active,setActive] = useState<Session|null>(null);
-  const [messages,setMessages] = useState<Message[]>([]);
-  const [input,setInput] = useState(initialPrompt);
-  const [busy,setBusy] = useState(false);
-  const [notice,setNotice] = useState(llmConfigured ? "" : "LLM 연결 필요 — 관리자가 기본 연결을 등록해야 합니다.");
-  const bottom = useRef<HTMLDivElement>(null);
-
-  const load = useCallback(async () => {
-    const query = projectSlug ? `?project_slug=${encodeURIComponent(projectSlug)}` : "";
-    const requests = [fetch(`/api/chat/sessions${query}`)];
-    if (layout === "page") requests.push(fetch("/api/projects"));
-    const [sessionResponse, projectResponse] = await Promise.all(requests);
-    if (sessionResponse.ok) setSessions((await sessionResponse.json()).items);
-    if (projectResponse?.ok) setProjects((await projectResponse.json()).items);
-  }, [layout, projectSlug]);
-
-  const open = useCallback(async (session: Session) => {
-    const response = await fetch(`/api/chat/sessions/${session.id}`);
-    if (!response.ok) return;
-    const data = await response.json();
-    const opened = {...session,...data.session};
-    setActive(opened);
-    setMessages(data.messages);
-    setNotice("");
-    localStorage.setItem(chatSessionStorageKey(projectSlug), opened.id);
-  }, [projectSlug]);
-
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!projectSlug) return;
-    void fetch(`/api/projects/${encodeURIComponent(projectSlug)}`).then((response)=>response.ok?response.json():null).then((project)=>setProjectTitle(project?.name||projectSlug));
-    const draft=localStorage.getItem(`apms.chat.prompt.${projectSlug}`);
-    if (draft) { setInput(draft);localStorage.removeItem(`apms.chat.prompt.${projectSlug}`); }
-  }, [projectSlug]);
-  useEffect(() => {
-    if (!sessions.length || active) return;
-    const saved = localStorage.getItem(chatSessionStorageKey(projectSlug));
-    const candidate = sessions.find((session) => session.id === saved) || sessions.find((session) => session.status === "active");
-    if (candidate) void open(candidate);
-  }, [active, open, projectSlug, sessions]);
-  useEffect(() => { bottom.current?.scrollIntoView({behavior:"smooth"}); }, [messages,notice]);
-  useEffect(() => {
-    const receivePrompt = (event: Event) => {
-      const detail = (event as CustomEvent<{prompt:string}>).detail;
-      if (detail?.prompt) { setInput(detail.prompt);if(projectSlug)localStorage.removeItem(`apms.chat.prompt.${projectSlug}`); }
-    };
-    window.addEventListener("apms:chat-prompt", receivePrompt);
-    return () => window.removeEventListener("apms:chat-prompt", receivePrompt);
-  }, [projectSlug]);
-  useEffect(() => {
-    if (layout !== "fullscreen") return;
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") router.push(`/p/${projectSlug}`); };
-    window.addEventListener("keydown", escape);
-    return () => window.removeEventListener("keydown", escape);
-  }, [layout, projectSlug, router]);
-
-  async function create(projectId?: string) {
-    const response = await fetch("/api/chat/sessions", {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(projectSlug ? {project_slug:projectSlug} : {project_id:projectId})});
-    if (!response.ok) return;
-    const session = await response.json();
-    await load();
-    await open(session);
-  }
-
-  async function send() {
-    const text=input.trim();
-    if (!text || !active || busy) return;
-    setInput(""); setBusy(true); setMessages((value)=>[...value,{role:"user",content:text}]);
-    const response=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({session_id:active.id,message:text})});
-    if (!response.ok) { const error=await response.json().catch(()=>({error:"응답 오류"}));setNotice(error.error);setBusy(false);return; }
-    const raw=await response.text();
-    for (const line of raw.split("\n")) if (line.startsWith("data: ")) {
-      const data=JSON.parse(line.slice(6));
-      if (!data.content) continue;
-      setMessages((value)=>[...value,{role:"assistant",content:data.content,metadata:{cards:data.cards}}]);
-      setActive((value)=>value&&({...value,context_tokens:data.usage.tokens,context_limit:data.usage.limit}));
-      if (data.cards?.length) window.dispatchEvent(new CustomEvent("apms:tasks-changed"));
-      if (data.handover) { setNotice(data.handover.notice);setActive(data.handover.session);localStorage.setItem(chatSessionStorageKey(projectSlug),data.handover.session.id);await load(); }
-    }
-    setBusy(false);
-  }
-
-  const ratio=active?Math.min(100,Math.round(Number(active.context_tokens||0)/Number(active.context_limit||1)*100)):0;
-  const projectName=active?.project_name||projectTitle||projects.find((project)=>project.slug===projectSlug)?.name||projectSlug;
-  return <main className={`chat-app chat-${layout}`} data-chat-panel={layout}>
-    {layout==="page"&&<aside><div className="brand">APMS</div><button className="new-chat" onClick={()=>create()}>＋ 새 대화</button>{projects.map((project)=><section key={project.id}><div className="project-row"><b>{project.name}</b><button onClick={()=>create(project.id)}>＋</button></div>{sessions.filter((session)=>session.project_id===project.id).map((session)=><button className={`session ${active?.id===session.id?"active":""}`} onClick={()=>open(session)} key={session.id}>{session.parent_session_id&&"↳ "}{session.title}<small>{session.status==="handed_over"?"핸드오버됨":""}</small></button>)}</section>)}</aside>}
-    <div className="chat-main"><header><div><span className="project-context">{projectName}</span><strong>{active?.title||"새 대화를 시작하세요"}</strong>{active&&<div className="usage"><span>사용량 {ratio}% ({Number(active.context_tokens).toLocaleString()}/{Number(active.context_limit).toLocaleString()})</span><i><em style={{width:`${ratio}%`}}/></i></div>}</div><div className="chat-header-actions">{layout==="panel"&&<button onClick={()=>router.push(`/p/${projectSlug}/chat`)}>전체화면</button>}{layout==="fullscreen"&&<button onClick={()=>router.push(`/p/${projectSlug}`)}>패널로</button>}{layout==="page"&&user&&<ModeToggle admin={user.role==="admin"}/>}</div></header>
-      <div className="conversation">{!active&&<div className="empty"><h1>무엇을 만들어 볼까요?</h1><p>{sessions.length?"대화를 선택하세요.":"새 대화를 만들고 작업지시서를 발주하세요."}</p><button className="new-chat central" onClick={()=>create()}>＋ 새 대화</button></div>}{messages.map((message,index)=><article className={message.role} key={message.id||index}>{message.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{message.content}</ReactMarkdown>:<p>{message.content}</p>}{message.metadata?.cards?.map((card,j)=><div className="task-card" key={j}>✓ {card.card}</div>)}</article>)}{notice&&<div className="handover">{notice}</div>}<div ref={bottom}/></div>
-      <div className="composer"><textarea disabled={!active||busy} value={input} placeholder={!active?"먼저 새 대화를 만드세요":"메시지를 입력하세요"} onChange={(event)=>setInput(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();void send();}}}/><button onClick={()=>void send()} disabled={!active||busy||!input.trim()}>{busy?"…":"↑"}</button></div>
-    </div>
-  </main>;
+export default function ChatPanel({projectSlug,layout,user,llmConfigured=true,initialPrompt=""}:{projectSlug?:string;layout:ChatPanelLayout;user?:{email:string;role:string};llmConfigured?:boolean;initialPrompt?:string}) {
+  const router=useRouter();
+  const [sessions,setSessions]=useState<Session[]>([]),[projectTitle,setProjectTitle]=useState(""),[active,setActive]=useState<Session|null>(null),[messages,setMessages]=useState<Message[]>([]),[input,setInput]=useState(initialPrompt),[busy,setBusy]=useState(false),[notice,setNotice]=useState(llmConfigured?"":"LLM 연결 필요 — 관리자가 기본 연결을 등록해야 합니다.");
+  const root=useRef<HTMLElement>(null),bottom=useRef<HTMLDivElement>(null),dragging=useRef(false),width=useRef(DEFAULT_CHAT_PANEL_WIDTH);
+  const load=useCallback(async()=>{const q=projectSlug?`?project_slug=${encodeURIComponent(projectSlug)}`:"";const r=await fetch(`/api/sessions${q}`);if(r.ok)setSessions((await r.json()).items);},[projectSlug]);
+  const open=useCallback(async(session:Session)=>{const r=await fetch(`/api/sessions/${session.id}`);if(!r.ok)return;const data=await r.json(),opened={...session,...data.session};setActive(opened);setMessages(data.messages);setNotice("");localStorage.setItem(chatSessionStorageKey(projectSlug),opened.id);},[projectSlug]);
+  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{if(!projectSlug)return;void fetch(`/api/projects/${encodeURIComponent(projectSlug)}`).then(r=>r.ok?r.json():null).then(p=>setProjectTitle(p?.name||projectSlug));const draft=localStorage.getItem(`apms.chat.prompt.${projectSlug}`);if(draft){setInput(draft);localStorage.removeItem(`apms.chat.prompt.${projectSlug}`);}},[projectSlug]);
+  useEffect(()=>{if(!sessions.length||active)return;const saved=localStorage.getItem(chatSessionStorageKey(projectSlug));void open(sessions.find(s=>s.id===saved)||sessions[0]);},[active,open,projectSlug,sessions]);
+  useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"});},[messages,notice]);
+  useEffect(()=>{const receive=(event:Event)=>{const prompt=(event as CustomEvent<{prompt:string}>).detail?.prompt;if(prompt){setInput(prompt);if(projectSlug)localStorage.removeItem(`apms.chat.prompt.${projectSlug}`);}};window.addEventListener("apms:chat-prompt",receive);return()=>window.removeEventListener("apms:chat-prompt",receive);},[projectSlug]);
+  useEffect(()=>{if(layout==="panel"&&projectSlug&&(window.innerWidth<=MOBILE_CHAT_BREAKPOINT||localStorage.getItem(CHAT_PANEL_FULLSCREEN_KEY)==="true"))router.replace(`/p/${projectSlug}/chat`);if(layout!=="fullscreen")return;localStorage.setItem(CHAT_PANEL_FULLSCREEN_KEY,"true");const escape=(event:KeyboardEvent)=>{if(event.key==="Escape"&&window.innerWidth>MOBILE_CHAT_BREAKPOINT){localStorage.setItem(CHAT_PANEL_FULLSCREEN_KEY,"false");router.push(`/p/${projectSlug}`);}};window.addEventListener("keydown",escape);return()=>window.removeEventListener("keydown",escape);},[layout,projectSlug,router]);
+  useEffect(()=>{if(layout!=="panel")return;const workspace=root.current?.closest<HTMLElement>(".project-workspace");const apply=(next:number)=>{width.current=clampChatPanelWidth(next,window.innerWidth);workspace?.style.setProperty("--chat-width",`${width.current}px`);};apply(restoredChatPanelWidth(localStorage.getItem(CHAT_PANEL_WIDTH_KEY),window.innerWidth));const move=(e:PointerEvent)=>{if(dragging.current&&window.innerWidth>MOBILE_CHAT_BREAKPOINT)apply(window.innerWidth-e.clientX);};const up=()=>{if(!dragging.current)return;dragging.current=false;localStorage.setItem(CHAT_PANEL_WIDTH_KEY,String(width.current));document.body.classList.remove("chat-panel-dragging");};const resize=()=>apply(width.current);window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);window.addEventListener("resize",resize);return()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);window.removeEventListener("resize",resize);};},[layout]);
+  async function create(){const r=await fetch("/api/sessions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(projectSlug?{project_slug:projectSlug}:{})});if(!r.ok)return;const session=await r.json();setSessions(v=>[session,...v]);await open(session);}
+  async function rename(session:Session,title:string){const r=await fetch(`/api/sessions/${session.id}`,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({title})});if(!r.ok)return;const updated=await r.json();setSessions(v=>v.map(s=>s.id===updated.id?{...s,...updated}:s));setActive(v=>v?.id===updated.id?{...v,...updated}:v);}
+  async function remove(session:Session){if(!confirm(`“${session.title}” 세션과 메시지를 삭제할까요?`))return;const r=await fetch(`/api/sessions/${session.id}`,{method:"DELETE"});if(!r.ok)return;const remaining=sessions.filter(s=>s.id!==session.id);setSessions(remaining);if(active?.id===session.id){setActive(null);setMessages([]);localStorage.removeItem(chatSessionStorageKey(projectSlug));if(remaining[0])await open(remaining[0]);else await create();}}
+  async function send(){const text=input.trim();if(!text||!active||active.status!=="active"||busy)return;setInput("");setBusy(true);setMessages(v=>[...v,{role:"user",content:text}]);const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({session_id:active.id,message:text})});if(!r.ok){const e=await r.json().catch(()=>({error:"응답 오류"}));setNotice(e.error);setBusy(false);return;}const raw=await r.text();for(const line of raw.split("\n"))if(line.startsWith("data: ")){const data=JSON.parse(line.slice(6));if(!data.content)continue;setMessages(v=>[...v,{role:"assistant",content:data.content,metadata:{cards:data.cards}}]);setActive(v=>v&&({...v,title:v.title==="새 대화"?text.replace(/\s+/g," ").slice(0,40):v.title,context_tokens:data.usage.tokens,context_limit:data.usage.limit}));if(data.cards?.length)window.dispatchEvent(new CustomEvent("apms:tasks-changed"));if(data.handover){setNotice(data.handover.notice);setActive(data.handover.session);localStorage.setItem(chatSessionStorageKey(projectSlug),data.handover.session.id);}}await load();setBusy(false);}
+  const resetWidth=()=>{width.current=clampChatPanelWidth(DEFAULT_CHAT_PANEL_WIDTH,window.innerWidth);root.current?.closest<HTMLElement>(".project-workspace")?.style.setProperty("--chat-width",`${width.current}px`);localStorage.setItem(CHAT_PANEL_WIDTH_KEY,String(width.current));};
+  const readOnly=active?.status==="handed_over",ratio=active?Math.min(100,Math.round(Number(active.context_tokens||0)/Number(active.context_limit||1)*100)):0,projectName=active?.project_name||projectTitle||projectSlug||"전체 채팅";
+  return <main ref={root} className={`chat-app chat-${layout}`} data-chat-panel={layout}>{layout==="panel"&&<div className="chat-panel-resizer" data-testid="chat-panel-resizer" role="separator" aria-orientation="vertical" aria-label="채팅 패널 폭 조절" onPointerDown={()=>{dragging.current=true;document.body.classList.add("chat-panel-dragging");}} onDoubleClick={resetWidth}/>}<div className="chat-main"><header><div className="chat-session-heading"><span className="project-context">{projectName}</span><SessionPicker sessions={sessions} active={active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove}/>{active&&<div className="usage"><span>사용량 {ratio}% ({Number(active.context_tokens).toLocaleString()}/{Number(active.context_limit).toLocaleString()})</span><i><em style={{width:`${ratio}%`}}/></i></div>}</div><div className="chat-header-actions">{layout==="panel"&&<button onClick={()=>{localStorage.setItem(CHAT_PANEL_FULLSCREEN_KEY,"true");router.push(`/p/${projectSlug}/chat`);}}>전체화면</button>}{layout==="fullscreen"&&<button className="panel-return" onClick={()=>{localStorage.setItem(CHAT_PANEL_FULLSCREEN_KEY,"false");router.push(`/p/${projectSlug}`);}}>패널로</button>}{layout==="page"&&user&&<ModeToggle admin={user.role==="admin"}/>}</div></header><div className="conversation">{!active&&<div className="empty"><h1>무엇을 만들어 볼까요?</h1><p>새 채팅을 만들고 작업지시서를 발주하세요.</p><button className="new-chat central" onClick={()=>void create()}>＋ 새 채팅</button></div>}{messages.map((message,index)=><article className={message.role} key={message.id||index}>{message.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{message.content}</ReactMarkdown>:<p>{message.content}</p>}{message.metadata?.cards?.map((card,j)=><div className="task-card" key={j}>✓ {card.card}</div>)}</article>)}{readOnly&&<div className="handover">종료된 세션입니다. {active.continuation&&<button onClick={()=>{const next=sessions.find(s=>s.id===active.continuation?.id);if(next)void open(next);}}>핸드오버 #{active.continuation.handover_number}로 이어짐</button>}</div>}{notice&&<div className="handover">{notice}</div>}<div ref={bottom}/></div><div className="composer"><textarea disabled={!active||readOnly||busy} value={input} placeholder={!active?"먼저 새 채팅을 만드세요":readOnly?"종료된 세션은 읽기 전용입니다":"메시지를 입력하세요"} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}}/><button onClick={()=>void send()} disabled={!active||readOnly||busy||!input.trim()}>{busy?"…":"↑"}</button></div></div></main>;
 }

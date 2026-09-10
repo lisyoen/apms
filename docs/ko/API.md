@@ -70,6 +70,16 @@ Markdown 원문 다운로드만 `text/markdown`을 반환한다.
 | POST | `/md/share-links` | user | 공유 링크 생성 |
 | DELETE | `/md/share-links/{id}` | user | 공유 링크 폐기 |
 | GET | `/md/download` | user/share | Markdown 다운로드 |
+| GET | `/sessions?project_slug={slug}` | user | 프로젝트 세션 또는 project_slug 생략 시 프로젝트 없는 세션 목록 |
+| POST | `/sessions` | user | 프로젝트 바인딩 또는 프로젝트 없는 채팅 세션 생성 |
+| PATCH | `/sessions/{id}` | 소유자 | 채팅 세션 이름 변경 |
+| DELETE | `/sessions/{id}` | 소유자 | 세션과 소속 메시지 삭제 |
+
+### 채팅 세션 수명주기
+
+*Implementation status: implemented*
+
+`GET /api/sessions`는 프로젝트 없는 세션만 반환하고, `project_slug`를 지정하면 인증 사용자가 소유한 해당 프로젝트 세션을 반환한다. 결과는 마지막 메시지 시각 최신순이며 `last_message_at`을 포함한다. `PATCH /api/sessions/{id}`는 `{"title":"..."}`을 받아 공백을 정규화한다. `DELETE`는 204를 반환하고 PostgreSQL 외래 키 cascade로 메시지도 삭제한다. 두 변경 API는 다른 사용자의 세션에 403을 반환한다. 첫 사용자 메시지는 줄바꿈을 제거한 앞 40자로 기본 제목을 교체한다.
 
 ## 3. 인증
 

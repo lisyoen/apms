@@ -72,6 +72,10 @@ Unauthorized and other non-existent user resources may unify to 404 to prevent i
 | get | `/md/download` | user/share | Markdown Download |
 | get | `/chat/sessions?project_slug={slug}` | user | List sessions restricted to an owned project |
 | post | `/chat/sessions` | user | Create a session; `project_slug` binds it to an owned project |
+| get | `/sessions?project_slug={slug}` | user | List project sessions, or projectless sessions when omitted |
+| post | `/sessions` | user | Create a project-bound or projectless chat session |
+| patch | `/sessions/{id}` | owner | Rename a chat session |
+| delete | `/sessions/{id}` | owner | Delete a session and cascade-delete its messages |
 | post | `/admin/llm-connections/{id}` | admin | Test a connection and return its final request URL |
 
 ### Chat panel and LLM URL behavior
@@ -79,6 +83,12 @@ Unauthorized and other non-existent user resources may unify to 404 to prevent i
 *Implementation status: implemented*
 
 Project chat clients send `project_slug` instead of accepting a freely selected project ID. The server resolves ownership and stores the resulting `project_id`. OpenAI and compatible connection base URLs are stored without trailing slashes or a trailing `/v1`; calls append exactly `/v1/chat/completions`. Connection tests return `url` alongside the abbreviated model response.
+
+### Chat session lifecycle
+
+*Implementation status: implemented*
+
+`GET /api/sessions` returns only projectless sessions; adding `project_slug` returns sessions for that owned project. Results are ordered by the most recent message time and include `last_message_at`. `PATCH /api/sessions/{id}` accepts `{"title":"..."}` and normalizes whitespace. `DELETE` returns 204 and PostgreSQL cascades deletion to messages. Both mutations return 403 when the session belongs to another user. The first user message replaces the default title with its first 40 characters after line breaks are removed.
 
 ## 3. Authentication
 

@@ -5,12 +5,12 @@ import { readFile } from "node:fs/promises";
 test("project panel creates and filters sessions with project_slug binding", async () => {
   const [panel, route] = await Promise.all([
     readFile(new URL("../src/components/chat/ChatPanel.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/app/api/chat/sessions/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/sessions/route.ts", import.meta.url), "utf8"),
   ]);
   assert.match(panel, /project_slug:projectSlug/);
   assert.match(panel, /project_slug=.*encodeURIComponent/);
   assert.match(route, /owner_id=\$2/);
-  assert.match(route, /projectId=project\.rows\[0\]\.id/);
+  assert.match(route, /projectId\s*=\s*project\.rows\[0\]\.id/);
 });
 
 test("panel and fullscreen routes retain the same project session", async () => {

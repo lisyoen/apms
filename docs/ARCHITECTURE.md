@@ -253,4 +253,6 @@ The Phase 1 flow covers most criteria. Complete log retention, strict multi-inst
 
 `ChatPanel` is the shared chat UI for the standalone `/chat` page, the resizable project-side panel, and `/p/{slug}/chat` fullscreen mode. Project modes bind session listing and creation to the authenticated user's project slug. A project-scoped local-storage key preserves the active session through client-side fullscreen and panel navigation.
 
-Desktop project pages use a 420 px side panel that can be resized between 320 and 720 px or collapsed. Below 900 px it becomes a bottom sheet. Chat tool results dispatch a local task-change event, while the task view also polls every five seconds for changes from other processes.
+Desktop project pages use a 420 px side panel with a 6 px left-edge drag handle. Its width is clamped between 320 px and 70% of the viewport and shared across projects in `apms.chat.panel.width`; double-click restores 420 px. Fullscreen preference is kept in `apms.chat.panel.fullscreen`, and viewports at or below 900 px always use fullscreen mode.
+
+The shared header session picker lists the current project's sessions—or only projectless sessions on `/chat`—by latest message time. It supports creation, inline rename, deletion, and resuming a selected session. Handed-over sessions carry an ended badge, render read-only, and link to their continuation.
