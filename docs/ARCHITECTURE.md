@@ -262,3 +262,17 @@ The shared header session picker lists the current project's sessions—or only 
 *Implementation status: implemented*
 
 All Markdown editing surfaces—including project guides, handovers, settings, future shared guidance, and drafts—must reuse `MdEditor`. It owns split preview, keyboard indentation and save, dirty-state departure protection, and conflict choices. Hosts provide loading and an `If-Match` save callback, then return to `MdViewer` after success so the saved content regenerates headings and the table of contents. Feature-specific textarea editors are not permitted.
+# LLM health and chat chronology
+
+Implementation status: Implemented (#017).
+
+The PostgreSQL-advisory-lock scheduler leader probes enabled global LLM connections every 60 seconds and stores `last_check_at`, `last_ok`, and the bounded upstream error text. The authenticated status endpoint may refresh stale data, while chat performs the same probe at send time so a request cannot fail behind a stale green indicator. Health failures are deliberately visible above every chat composer; administrators receive a management link and other users receive an escalation instruction.
+
+Message cards use their database `created_at` values and a shared KST formatter. It emits `HH:mm` for the current KST calendar day and `M/D HH:mm` otherwise, while the DOM retains the complete ISO timestamp. Continued sessions render a numbered, timestamped handover divider before their first message.
+## LLM health monitoring and chat visibility
+
+*Implementation status: implemented*
+
+The elected task-scheduler leader checks enabled global LLM connections every 60 seconds. Compatible and OpenAI providers use `GET {normalized_base_url}/v1/models`; provider-specific authentication headers are applied, with a five-second timeout. Results are persisted on `llm_connections` as `last_check_at`, `last_ok`, and `last_error`, including a stable failure classification.
+
+The chat client polls the authenticated status endpoint on the same cadence and keeps a non-success banner directly above the composer. Administrators receive a management link, while other users receive an administrator-contact action. Message and session timestamps share one KST formatter, and continued sessions start with a handover divider so reconnects preserve chronology.

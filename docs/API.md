@@ -449,3 +449,27 @@ Send a structured correction prompt up to once on failure, or return 422 if it f
 `GET /api/projects/{slug}/docs/{kind}` returns Markdown plus `ETag` and `X-Updated-At` revision headers. `PUT` is limited to `guide`, `next`, and `setting`; it requires the loaded ETag in `If-Match`. Stale revisions return 409 without writing and missing preconditions return 428. Success returns `ok`, the new `etag`, and `updated_at`.
 
 `setting` requires YAML frontmatter containing only allowed non-sensitive execution keys of the documented string, integer, or string-array types. `secrets` contains names only. Invalid frontmatter returns 400 with a user-facing message. Ownership failures return 403.
+# LLM connection status
+
+Implementation status: Implemented (#017).
+
+`GET /api/llm/status` requires an authenticated user and returns the default connection's health without exposing credentials. `reason` is one of `no_default`, `unreachable`, `auth`, `model_missing`, or `ok`; the response also contains `message`, `last_check_at`, `last_error`, and `is_admin`. Stale status (older than 60 seconds) is refreshed before it is returned.
+
+`POST /api/admin/llm-connections/{id}` runs the same five-second health probe used by the scheduler and returns `ok`, `reason`, final `url`, `response_ms`, `error`, and `checked_at`. For OpenAI and compatible providers it calls `{base_url}/v1/models` and verifies the configured model. The Anthropic probe makes a minimal Messages request. `PATCH` with `{"is_default":true}` atomically replaces the global default.
+
+`POST /api/chat` checks the selected default before storing the user message. A failed probe returns HTTP 503 with the same `code`, localized `error`, and diagnostic `last_error` shown by the status banner. Successful streamed messages include `user_created_at` and assistant `created_at`.
+## LLM connection status
+
+*Implementation status: implemented*
+
+`GET /api/llm/status` requires an authenticated user and reports the default connection's health. `reason` is one of `no_default`, `unreachable`, `auth`, `model_missing`, or `ok`; the response also includes `last_error`, the checked URL, check time, and whether the caller is an administrator. The endpoint never exposes API keys.
+
+The administrator connection-test action calls `POST /api/admin/llm-connections/{id}`. Its response contains the final models URL, response latency, reason classification, and upstream error text. `PATCH /api/admin/llm-connections/{id}` with `{"is_default":true}` atomically clears the previous global default before selecting the requested connection.
+
+Chat submission performs the same live health check before storing a user message. A failed submission returns HTTP 503 with the same `reason`, localized actionable `error`, and sanitized `last_error` used by the status banner.
+
+## Chat message timestamps
+
+*Implementation status: implemented*
+
+Session detail responses include `created_at` for every message and a one-based `handover_number` for the session chain. Successful chat events include `created_at` for the assistant message and `user_created_at` for the stored user message. Clients display KST as `HH:mm` for today or `M/d HH:mm` otherwise, with the full ISO timestamp in the DOM tooltip.

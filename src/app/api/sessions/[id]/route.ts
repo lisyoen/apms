@@ -3,12 +3,17 @@ import { db } from "@/lib/db";
 
 async function ownedSession(id: string, userId: string) {
   const result = await db.query("SELECT * FROM sessions WHERE id=$1", [id]);
-  if (!result.rows[0]) return { error: new Response("Not found", { status: 404 }) };
-  if (result.rows[0].user_id !== userId) return { error: new Response("Forbidden", { status: 403 }) };
+  if (!result.rows[0])
+    return { error: new Response("Not found", { status: 404 }) };
+  if (result.rows[0].user_id !== userId)
+    return { error: new Response("Forbidden", { status: 403 }) };
   return { session: result.rows[0] };
 }
 
-export async function GET(_req: Request, ctx: RouteContext<"/api/sessions/[id]">) {
+export async function GET(
+  _req: Request,
+  ctx: RouteContext<"/api/sessions/[id]">,
+) {
   try {
     const user = await requireUser();
     const { id } = await ctx.params;
@@ -26,29 +31,53 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/sessions/[id]">
        FROM sessions child WHERE child.parent_session_id=$1 ORDER BY child.created_at LIMIT 1`,
       [id],
     );
-    return Response.json({ session: { ...owned.session, continuation: continuation.rows[0] || null }, messages: messages.rows });
+    const handover = await db.query(
+      `WITH RECURSIVE ancestors AS (SELECT id,parent_session_id,1 depth FROM sessions WHERE id=$1 UNION ALL SELECT s.id,s.parent_session_id,a.depth+1 FROM sessions s JOIN ancestors a ON s.id=a.parent_session_id) SELECT max(depth) handover_number FROM ancestors`,
+      [id],
+    );
+    return Response.json({
+      session: {
+        ...owned.session,
+        handover_number: Number(handover.rows[0].handover_number),
+        continuation: continuation.rows[0] || null,
+      },
+      messages: messages.rows,
+    });
   } catch (error) {
     return apiError(error);
   }
 }
 
-export async function PATCH(req: Request, ctx: RouteContext<"/api/sessions/[id]">) {
+export async function PATCH(
+  req: Request,
+  ctx: RouteContext<"/api/sessions/[id]">,
+) {
   try {
     const user = await requireUser();
     const { id } = await ctx.params;
     const owned = await ownedSession(id, user.id);
     if (owned.error) return owned.error;
     const body = await req.json();
-    const title = typeof body.title === "string" ? body.title.replace(/\s+/g, " ").trim().slice(0, 120) : "";
-    if (!title) return Response.json({ error: "title이 필요합니다." }, { status: 400 });
-    const result = await db.query("UPDATE sessions SET title=$2 WHERE id=$1 RETURNING *", [id, title]);
+    const title =
+      typeof body.title === "string"
+        ? body.title.replace(/\s+/g, " ").trim().slice(0, 120)
+        : "";
+    if (!title)
+      return Response.json({ error: "title이 필요합니다." }, { status: 400 });
+    const result = await db.query(
+      "UPDATE sessions SET title=$2 WHERE id=$1 RETURNING *",
+      [id, title],
+    );
     return Response.json(result.rows[0]);
   } catch (error) {
     return apiError(error);
   }
 }
 
-export async function DELETE(_req: Request, ctx: RouteContext<"/api/sessions/[id]">) {
+export async function DELETE(
+  _req: Request,
+  ctx: RouteContext<"/api/sessions/[id]">,
+) {
   try {
     const user = await requireUser();
     const { id } = await ctx.params;
