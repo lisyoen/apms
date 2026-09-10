@@ -1,5 +1,6 @@
 "use client";
 
+import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -434,6 +435,23 @@ export default function ChatPanel({
     await load();
     setBusy(false);
   }
+  function submitComposer(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    void send();
+  }
+  function handleComposerKeyDown(
+    event: ReactKeyboardEvent<HTMLTextAreaElement>,
+  ) {
+    const native = event.nativeEvent as KeyboardEvent & {
+      isComposing?: boolean;
+      keyCode?: number;
+    };
+    if (native.isComposing || native.keyCode === 229) return;
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void send();
+    }
+  }
   const resetWidth = () => {
     width.current = clampChatPanelWidth(
       DEFAULT_CHAT_PANEL_WIDTH,
@@ -616,7 +634,7 @@ export default function ChatPanel({
               )}
             </div>
           )}
-          <div className="composer">
+          <form className="composer" onSubmit={submitComposer}>
             <textarea
               disabled={!active || readOnly || busy}
               value={input}
@@ -628,20 +646,15 @@ export default function ChatPanel({
                     : "메시지를 입력하세요"
               }
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
+              onKeyDown={handleComposerKeyDown}
             />
             <button
-              onClick={() => void send()}
+              type="submit"
               disabled={!active || readOnly || busy || !input.trim()}
             >
               {busy ? "…" : "↑"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </main>
