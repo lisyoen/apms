@@ -178,7 +178,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
         {section !== "tasks" ? (
           <>
             {editing ? (
-              <MdEditor title={`${slug}.${section}`} initialContent={content} onSave={save} onCancel={()=>setEditing(false)} onReload={async()=>{await loadDoc(section);setEditing(false);}} />
+              <MdEditor title={`${slug}.${section}`} initialContent={content} project={slug} documentPath={`docs/${slug}.${section}.md`} onSave={save} onCancel={()=>setEditing(false)} onReload={async()=>{await loadDoc(section);setEditing(false);}} />
             ) : (
                 <MdViewer
                   key={`${section}:${updatedAt}`}

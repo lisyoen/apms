@@ -261,7 +261,23 @@ The shared header session picker lists the current project's sessions—or only 
 
 *Implementation status: implemented*
 
-All Markdown editing surfaces—including project guides, handovers, settings, future shared guidance, and drafts—must reuse `MdEditor`. It owns split preview, keyboard indentation and save, dirty-state departure protection, and conflict choices. Hosts provide loading and an `If-Match` save callback, then return to `MdViewer` after success so the saved content regenerates headings and the table of contents. Feature-specific textarea editors are not permitted.
+All Markdown editing surfaces—including project guides, handovers, settings, future shared guidance, and drafts—must reuse `MdEditor`. It dynamically loads the client-only `WysiwygEditor` (`ssr: false`), owns save, dirty-state departure protection, and conflict choices, and offers raw Markdown only through the **MD source** toggle. Hosts provide the project slug, document-relative path, loading, and an `If-Match` save callback. Feature-specific textarea editors are not permitted.
+
+The WYSIWYG document uses `StarterKit`, link, image, resizable table/row/header/cell, task list/item, syntax-aware code block, placeholder, bubble menu, and `tiptap-markdown`. Relative image sources are rewritten only for display to the authenticated `GET /api/projects/{slug}/files?path=` endpoint and restored before save. That endpoint checks project ownership, rejects traversal and symlink escape, and permits image files only under project `docs/` or `tasks/`.
+
+| Toolbar and slash commands | Available actions |
+|---|---|
+| Toolbar | H1–H3, bold, italic, strike, inline code, link, image, bullet/ordered/task list, language-tagged code block, blockquote, horizontal rule, row/column-sized table |
+| Slash (`/`, filtered) | H1–H3, bullet/ordered/task list, code block, table, blockquote, horizontal rule |
+| Table context menu | Add/delete row or column, toggle header, merge/split cells, delete table |
+| Selection bubble menu | Bold, italic, inline code, link, strike |
+
+| Keyboard input | Result |
+|---|---|
+| `Ctrl/Cmd+S` | Save changed Markdown |
+| `Tab` / `Shift+Tab` in a list | Indent / outdent list or task item |
+| Slash menu `Up` / `Down` / `Enter` / `Escape` | Select / run / close |
+| `<-> `, `-> `, `<- `, `=> `, `<= ` | `↔ `, `→ `, `← `, `⇒ `, `⇐ ` outside code blocks and inline code |
 # LLM health and chat chronology
 
 Implementation status: Implemented (#017).
