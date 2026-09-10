@@ -1,7 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import {
+  clampChatPanelWidth,
+  restoredChatPanelWidth,
+} from "../src/components/chat/panel-width.ts";
 import { isNearBottom } from "../src/components/chat/scroll.ts";
+
+test("oversized dragged and restored panel widths preserve project content", () => {
+  assert.equal(clampChatPanelWidth(5000, 901), 601);
+  assert.equal(restoredChatPanelWidth("5000", 901), 601);
+  assert.equal(clampChatPanelWidth(5000, 1440), 1008);
+});
+
+test("chat CSS contains intrinsic-width and long-content overflow guards", async () => {
+  const css = await readFile(
+    new URL("../src/components/chat/ChatPanel.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /min-width:\s*0/);
+  assert.match(css, /overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.chat-app \.conversation pre\s*\{[^}]*overflow-x:\s*auto/s);
+  assert.match(css, /\.chat-app \.conversation table\s*\{[^}]*overflow-x:\s*auto/s);
+});
 
 test("near-bottom includes distances from zero through 80px", () => {
   assert.equal(
