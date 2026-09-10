@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type TaskSectionKey = "in-progress" | "pending" | "done" | "failed" | "reports";
 export type TaskItem = {
@@ -28,14 +28,14 @@ type Props = {
   items: Record<TaskSectionKey, TaskItem[]>;
   totals: Record<"in_progress" | "pending" | "done" | "failed" | "reports", number>;
   offsets: Record<TaskSectionKey, number>;
-  onCreate: (event: FormEvent<HTMLFormElement>) => void;
+  onNewTask: () => void;
   onMove: (file: string, target: string) => void;
   onOpen: (item: TaskItem, section: TaskSectionKey) => void;
   onOpenInChat: (task: TaskItem) => void;
   onPage: (section: TaskSectionKey, offset: number) => void;
 };
 
-export default function TaskSections({ slug, items, totals, offsets, onCreate, onMove, onOpen, onOpenInChat, onPage }: Props) {
+export default function TaskSections({ slug, items, totals, offsets, onNewTask, onMove, onOpen, onOpenInChat, onPage }: Props) {
   const storageKey = `apms.tasks.sections.${slug}`;
   const [expanded, setExpanded] = useState<Record<TaskSectionKey, boolean>>({
     "in-progress": true, pending: true, done: true, failed: true, reports: true,
@@ -58,6 +58,12 @@ export default function TaskSections({ slug, items, totals, offsets, onCreate, o
 
   return (
     <div className="task-sections" data-section-order="in-progress,pending,done,failed,reports">
+      <header className="task-toolbar">
+        <div className="task-summary" aria-label="작업 요약">
+          {sections.map((section) => <span className="task-summary-badge" key={section.key}>{section.label} {totals[section.summaryKey]}</span>)}
+        </div>
+        <button className="primary new-task-button" type="button" onClick={onNewTask}>새 작업</button>
+      </header>
       {sections.map((section) => {
         const total = totals[section.summaryKey];
         const offset = offsets[section.key];
@@ -72,18 +78,6 @@ export default function TaskSections({ slug, items, totals, offsets, onCreate, o
             </button>
             {expanded[section.key] && (
               <div className="task-section-body">
-                {section.key === "pending" && (
-                  <form className="task-form" onSubmit={onCreate}>
-                    <h2>새 작업지시서</h2>
-                    <label>제목<input name="title" required maxLength={120} /></label>
-                    <label>본문 Markdown<textarea name="body" required /></label>
-                    <div className="dependency-fields">
-                      <label>선행 작업<select name="pre-task"><option value="">없음</option>{items.pending.map((task) => <option key={task.filename}>{task.filename}</option>)}</select></label>
-                      <label>후속 작업<select name="next-task"><option value="">없음</option>{items.pending.map((task) => <option key={task.filename}>{task.filename}</option>)}</select></label>
-                    </div>
-                    <button className="primary">등록</button>
-                  </form>
-                )}
                 <div className="task-list">
                   {items[section.key].map((task) => (
                     <div className="task-row" key={task.filename}>

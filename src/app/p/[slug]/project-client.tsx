@@ -1,9 +1,10 @@
 "use client";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MdViewer from "@/components/MdViewer";
 import MdEditor, { type SaveResult } from "@/components/md/MdEditor";
 import ChatPanel from "@/components/chat/ChatPanel";
 import TaskSections, { type TaskItem, type TaskSectionKey } from "./task-sections";
+import NewTaskModal, { type NewTaskPayload } from "./new-task-modal";
 const docs = [
   { key: "dev", label: "개요" },
   { key: "guide", label: "지침" },
@@ -27,6 +28,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
   const [taskTotals, setTaskTotals] = useState({ pending: 0, in_progress: 0, done: 0, failed: 0, reports: 0 });
   const [taskOffsets, setTaskOffsets] = useState(emptyOffsets);
   const [openFile, setOpenFile] = useState<string | null>(null);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [chatWidth, setChatWidth] = useState(420);
   const dragging = useRef(false);
@@ -104,24 +106,20 @@ export default function ProjectClient({ slug }: { slug: string }) {
     setToast("문서를 저장했습니다.");window.setTimeout(()=>setToast(""),3000);
     return{ok:true,content:nextContent,etag:body.etag,updatedAt:body.updated_at};
   }
-  async function createTask(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
+  async function createTask(payload: NewTaskPayload): Promise<string | null> {
     const r = await fetch(`/api/projects/${slug}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        title: f.get("title"),
-        body: f.get("body"),
-        "pre-task": f.get("pre-task") || null,
-        "next-task": f.get("next-task") || null,
-      }),
+      body: JSON.stringify(payload),
     });
     if (r.ok) {
-      e.currentTarget.reset();
       setTaskOffsets((current) => ({ ...current, pending: 0 }));
       await Promise.all([loadSummary(), loadTaskSection("pending", 0)]);
-    } else alert((await r.json()).error);
+      setNewTaskOpen(false);
+      return null;
+    }
+    const body = await r.json().catch(() => ({}));
+    return body.error || "작업을 등록하지 못했습니다.";
   }
   async function move(file: string, target: string) {
     const r = await fetch(`/api/projects/${slug}/tasks/${file}/move`, {
@@ -203,12 +201,13 @@ export default function ProjectClient({ slug }: { slug: string }) {
                 <MdViewer content={content} title={openFile} onShare={share} />
               </>
             ) : (
-              <TaskSections slug={slug} items={taskItems} totals={taskTotals} offsets={taskOffsets} onCreate={createTask} onMove={(file,target)=>void move(file,target)} onOpen={(item,itemSection)=>void open(item,itemSection)} onOpenInChat={openInChat} onPage={(key,offset)=>{setTaskOffsets((current)=>({...current,[key]:offset}));void loadTaskSection(key,offset);}} />
+              <TaskSections slug={slug} items={taskItems} totals={taskTotals} offsets={taskOffsets} onNewTask={()=>setNewTaskOpen(true)} onMove={(file,target)=>void move(file,target)} onOpen={(item,itemSection)=>void open(item,itemSection)} onOpenInChat={openInChat} onPage={(key,offset)=>{setTaskOffsets((current)=>({...current,[key]:offset}));void loadTaskSection(key,offset);}} />
             )}
           </div>
         )}
       </section>
     </main>
+    {newTaskOpen&&<NewTaskModal pendingTasks={taskItems.pending} onClose={()=>setNewTaskOpen(false)} onCreate={createTask} />}
     <button className="chat-collapse" aria-expanded={chatOpen} onClick={()=>{const next=!chatOpen;setChatOpen(next);localStorage.setItem("apms.project.chat.open",String(next));}}>{chatOpen?"챗봇 접기":"챗봇 펴기"}</button>
     {chatOpen&&<aside className="project-chat" data-testid="project-chat-panel"><div className="chat-resizer" onPointerDown={(event)=>{dragging.current=true;event.currentTarget.setPointerCapture(event.pointerId);}}/><ChatPanel projectSlug={slug} layout="panel" /></aside>}
     </div>

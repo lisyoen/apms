@@ -280,6 +280,14 @@ The WYSIWYG document uses `StarterKit`, link, image, resizable table/row/header/
 | `Tab` / `Shift+Tab` in a list | Indent / outdent list or task item |
 | Slash menu `Up` / `Down` / `Enter` / `Escape` | Select / run / close |
 | `<-> `, `-> `, `<- `, `=> `, `<= ` | `↔ `, `→ `, `← `, `⇒ `, `⇐ ` outside code blocks and inline code |
+
+## 15. Project task workspace
+
+*Implementation status: implemented*
+
+The project task view presents the in-progress, pending, done, failed, and report queues as collapsible sections with summary badges. Task creation is initiated by the **New task** control beside those badges instead of an always-visible form in the pending section.
+
+The creation dialog preserves title, Markdown instruction body, prerequisite, follow-up, and timeout fields. It validates timeout as an integer from 1 to 1440 minutes, retains input and displays an inline API error after a failed request, and refreshes the pending queue and summary after success. Escape, backdrop, and close controls dismiss it; non-empty edits require confirmation. Opening focuses the title and locks page scrolling. At viewport widths of 900 px or less, the dialog becomes a full-screen sheet.
 # LLM health and chat chronology
 
 Implementation status: Implemented (#017).
