@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import MdViewer from "@/components/MdViewer";
+import MdEditor, { type SaveResult } from "@/components/md/MdEditor";
 import ChatPanel from "@/components/chat/ChatPanel";
 const docs = [
   { key: "dev", label: "개요" },
@@ -31,7 +32,10 @@ export default function ProjectClient({ slug }: { slug: string }) {
   const [project, setProject] = useState<{ name: string } | null>(null);
   const [section, setSection] = useState("dev");
   const [content, setContent] = useState("");
+  const [etag, setEtag] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [editing, setEditing] = useState(false);
+  const [toast, setToast] = useState("");
   const [status, setStatus] = useState("pending");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openFile, setOpenFile] = useState<string | null>(null);
@@ -39,8 +43,8 @@ export default function ProjectClient({ slug }: { slug: string }) {
   const [chatWidth, setChatWidth] = useState(420);
   const dragging = useRef(false);
   async function loadDoc(kind: string) {
-    const r = await fetch(`/api/projects/${slug}/docs/${kind}`);
-    if (r.ok) setContent(await r.text());
+    const r = await fetch(`/api/projects/${slug}/docs/${kind}`,{cache:"no-store"});
+    if (r.ok) {setContent(await r.text());setEtag(r.headers.get("etag")||"");setUpdatedAt(r.headers.get("x-updated-at")||"");}
   }
   async function loadTasks(next = status) {
     const r = await fetch(
@@ -83,13 +87,18 @@ export default function ProjectClient({ slug }: { slug: string }) {
     window.addEventListener("pointermove", move);window.addEventListener("pointerup", up);
     return () => { window.removeEventListener("pointermove", move);window.removeEventListener("pointerup", up); };
   }, [chatWidth]);
-  async function save() {
-    await fetch(`/api/projects/${slug}/docs/${section}`, {
+  async function save(nextContent:string):Promise<SaveResult> {
+    const r=await fetch(`/api/projects/${slug}/docs/${section}`, {
       method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content }),
+      headers: { "content-type": "application/json", "If-Match":etag },
+      body: JSON.stringify({ content:nextContent }),
     });
+    const body=await r.json().catch(()=>({}));
+    if(!r.ok)return{ok:false,conflict:r.status===409,message:body.message||body.error||"저장하지 못했습니다."};
+    setContent(nextContent);setEtag(body.etag);setUpdatedAt(body.updated_at);
     setEditing(false);
+    setToast("문서를 저장했습니다.");window.setTimeout(()=>setToast(""),3000);
+    return{ok:true,content:nextContent,etag:body.etag,updatedAt:body.updated_at};
   }
   async function createTask(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -165,35 +174,20 @@ export default function ProjectClient({ slug }: { slug: string }) {
         </nav>
       </aside>
       <section className="project-content">
+        {toast&&<div className="toast" role="status">{toast}</div>}
         {section !== "tasks" ? (
           <>
             {editing ? (
-              <div className="editor">
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
-                <div>
-                  <button onClick={() => setEditing(false)}>취소</button>
-                  <button className="primary" onClick={save}>
-                    저장
-                  </button>
-                </div>
-              </div>
+              <MdEditor title={`${slug}.${section}`} initialContent={content} onSave={save} onCancel={()=>setEditing(false)} onReload={async()=>{await loadDoc(section);setEditing(false);}} />
             ) : (
-              <>
-                <button
-                  className="edit-button"
-                  onClick={() => setEditing(true)}
-                >
-                  편집
-                </button>
                 <MdViewer
+                  key={`${section}:${updatedAt}`}
                   content={content}
                   title={`${slug}.${section}`}
                   onShare={share}
+                  editable={["guide","next","setting"].includes(section)}
+                  onEdit={()=>setEditing(true)}
                 />
-              </>
             )}
           </>
         ) : (

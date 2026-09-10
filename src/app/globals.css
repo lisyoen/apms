@@ -276,8 +276,7 @@ button {
   align-items: center;
   justify-content: space-between;
 }
-.viewer-toolbar button,
-.edit-button {
+.viewer-toolbar button {
   border: 1px solid var(--line);
   font-size: 13px;
 }
@@ -395,22 +394,16 @@ button {
   border-radius: 4px;
   padding: 3px 6px;
 }
-.edit-button {
-  float: right;
-}
-.editor textarea {
+.md-editor {max-width:1080px}.md-editor header{height:50px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.md-editor header>div{display:flex;gap:8px}.md-editor button{border:1px solid var(--line);font-size:13px}.md-editor button:disabled{opacity:.45;cursor:not-allowed}.md-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:calc(100vh - 180px);min-height:480px}.md-editor-grid.preview-hidden{grid-template-columns:1fr}.md-editor textarea {
   width: 100%;
-  height: 70vh;
+  height: 100%;
   border: 1px solid var(--line);
-  border-radius: 9px;
   padding: 18px;
   font-family: monospace;
   line-height: 1.6;
+  resize: none;
 }
-.editor > div {
-  text-align: right;
-  margin-top: 10px;
-}
+.md-editor-preview{overflow:auto;border:1px solid var(--line);border-left:0;padding:0 22px}.editor-error{margin:12px 0;padding:12px;border:1px solid #fda29b;background:#fef3f2;color:#b42318;border-radius:8px}.editor-error>div{display:inline-flex;gap:8px;margin-left:12px}.toast{position:fixed;right:24px;top:24px;z-index:70;background:#067647;color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 8px 24px #0003}
 .tasks-view {
   max-width: 940px;
 }

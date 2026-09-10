@@ -441,3 +441,11 @@ Send a structured correction prompt up to once on failure, or return 422 if it f
 - API Keys are not exposed to responses other than generated input.
 - Markdown is only viewed, shared and downloaded as a secure identifier.
 - Duplicate orders and state transitions are handled idempotently.
+
+## 14. Project document editing
+
+*Implementation status: implemented*
+
+`GET /api/projects/{slug}/docs/{kind}` returns Markdown plus `ETag` and `X-Updated-At` revision headers. `PUT` is limited to `guide`, `next`, and `setting`; it requires the loaded ETag in `If-Match`. Stale revisions return 409 without writing and missing preconditions return 428. Success returns `ok`, the new `etag`, and `updated_at`.
+
+`setting` requires YAML frontmatter containing only allowed non-sensitive execution keys of the documented string, integer, or string-array types. `secrets` contains names only. Invalid frontmatter returns 400 with a user-facing message. Ownership failures return 403.

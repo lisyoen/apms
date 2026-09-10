@@ -442,3 +442,11 @@ timeout_min: 20
 *Implementation status: implemented*
 
 프로젝트 챗 클라이언트는 자유롭게 선택 가능한 프로젝트 ID 대신 `project_slug`를 전송한다. 서버는 소유권을 확인해 해당 `project_id`를 세션에 저장한다. OpenAI 및 호환 연결의 base URL은 끝의 슬래시와 `/v1`을 제거해 저장하고, 호출 시 `/v1/chat/completions`를 정확히 한 번 붙인다. 연결 테스트 응답은 축약된 모델 응답과 함께 `url`을 반환한다.
+
+## 14. 프로젝트 문서 편집
+
+*Implementation status: implemented*
+
+`GET /api/projects/{slug}/docs/{kind}`는 Markdown 원문과 `ETag`, `X-Updated-At` 리비전 헤더를 반환한다. `PUT`은 `guide`, `next`, `setting`에만 허용하며 열 때 받은 ETag를 `If-Match`로 보내야 한다. 오래된 리비전은 파일을 쓰지 않고 409, 조건 누락은 428을 반환한다. 성공 응답에는 `ok`, 새 `etag`, `updated_at`이 포함된다.
+
+`setting`은 YAML frontmatter가 필수이며 허용된 비민감 실행 키만 정해진 문자열·정수·문자열 배열 타입으로 받는다. `secrets`에는 이름만 저장한다. 잘못된 frontmatter는 사용자 메시지와 함께 400, 소유권 위반은 403을 반환한다.

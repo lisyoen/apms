@@ -256,3 +256,9 @@ The Phase 1 flow covers most criteria. Complete log retention, strict multi-inst
 Desktop project pages use a 420 px side panel with a 6 px left-edge drag handle. Its width is clamped between 320 px and 70% of the viewport and shared across projects in `apms.chat.panel.width`; double-click restores 420 px. Fullscreen preference is kept in `apms.chat.panel.fullscreen`, and viewports at or below 900 px always use fullscreen mode.
 
 The shared header session picker lists the current project's sessions—or only projectless sessions on `/chat`—by latest message time. It supports creation, inline rename, deletion, and resuming a selected session. Handed-over sessions carry an ended badge, render read-only, and link to their continuation.
+
+## 14. Shared Markdown editor
+
+*Implementation status: implemented*
+
+All Markdown editing surfaces—including project guides, handovers, settings, future shared guidance, and drafts—must reuse `MdEditor`. It owns split preview, keyboard indentation and save, dirty-state departure protection, and conflict choices. Hosts provide loading and an `If-Match` save callback, then return to `MdViewer` after success so the saved content regenerates headings and the table of contents. Feature-specific textarea editors are not permitted.
