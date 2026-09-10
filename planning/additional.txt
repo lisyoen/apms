@@ -7,14 +7,14 @@ APMS 기획 inbox (planning/additional.txt)
 
 ## Claude → 사용자 (답변 요청)
 
-1. PoC 전용 OpenAI API 키: 발급 후 채팅으로 전달 (Claude Chat 이 시크릿 저장소에 보관 → 기본 LLM 연결 교체).
-2. 완료 이메일용 Gmail 앱 비밀번호: 시크릿 저장소에 저장 요청 (형식은 Claude Chat 이 안내한 대로).
+1. PoC 전용 OpenAI API 키: 발급 후 채팅으로 전달 (Claude Chat 이 시크릿 저장소에 보관 → 기본 LLM 연결 교체). > 당분간은 spark-home 의 Gemma4 로 PoC 진행함. 챗봇 UX 가 안정화되면 OpenAI API Key 연결 예정
+2. 완료 이메일용 Gmail 앱 비밀번호: 시크릿 저장소에 저장 요청 (형식은 Claude Chat 이 안내한 대로). Google 용 토큰이 기록되있음. 이미 이걸로 이메일, 구글독스 모두 제어 가능함.
 3. #009 실행 시 OpenCode ChatGPT OAuth 로그인 1회가 필요할 수 있음 — 워커 보고서 절차 확인 후 안내 예정.
-4. #013(원격 워크스페이스) 는 아래 가정으로 발주함. 이의가 있으면 "사용자 → Claude" 절에 답변:
+4. #013(원격 워크스페이스) 는 아래 가정으로 발주함. 이의가 있으면 "사용자 → Claude" 절에 답변: 승인
    - 실행 모드 B-2(워커를 개발PC 에서 SSH 로 실행) 기본
    - 1차 OS: Windows(PowerShell + OpenSSH Server) 우선, Linux/mac 동일 인터페이스
    - SSH 자격: APMS 가 사용자별 키 발급 → 사용자가 개발PC authorized_keys 등록
-   - PoC 검증 대상: 사용자 집PC(Windows). 접속 정보는 시크릿 저장소에 별도 등록(공개 문서 기재 금지), 집PC 에 OpenSSH Server·OpenCode 설치·OAuth 로그인 준비 필요
+   - PoC 검증 대상: 사용자 집PC(Windows). 접속 정보는 시크릿 저장소에 별도 등록(공개 문서 기재 금지), 집PC 에 OpenSSH Server·OpenCode 설치·OAuth 로그인 준비 필요 > spark-home 에서 ssh 로 집PC 제어 가능하니 직접 설치해서 준비할 것.
 
 (2026-09-09 23:15 반영 완료 — 챗봇 우측 패널 #012 발주, 원격 워크스페이스 #013 스테이징, 이슈 #1 코멘트)
 
