@@ -1,8 +1,9 @@
 "use client";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import MdViewer from "@/components/MdViewer";
 import MdEditor, { type SaveResult } from "@/components/md/MdEditor";
 import ChatPanel from "@/components/chat/ChatPanel";
+import TaskSections, { type TaskItem, type TaskSectionKey } from "./task-sections";
 const docs = [
   { key: "dev", label: "개요" },
   { key: "guide", label: "지침" },
@@ -11,23 +12,9 @@ const docs = [
   { key: "tasks", label: "작업" },
   { key: "next", label: "핸드오버" },
 ];
-const statuses = [
-  { key: "pending", label: "대기" },
-  { key: "in-progress", label: "진행" },
-  { key: "done", label: "완료" },
-  { key: "failed", label: "실패" },
-  { key: "reports", label: "리포트" },
-];
-type Task = {
-  id: string;
-  filename: string;
-  title: string;
-  status: string;
-  created_at: string;
-  pid?: number;
-  run_started_at?: string;
-  elapsed_seconds?: number;
-};
+const sectionKeys: TaskSectionKey[] = ["in-progress", "pending", "done", "failed", "reports"];
+const emptyItems = (): Record<TaskSectionKey, TaskItem[]> => ({ "in-progress": [], pending: [], done: [], failed: [], reports: [] });
+const emptyOffsets = (): Record<TaskSectionKey, number> => ({ "in-progress": 0, pending: 0, done: 0, failed: 0, reports: 0 });
 export default function ProjectClient({ slug }: { slug: string }) {
   const [project, setProject] = useState<{ name: string } | null>(null);
   const [section, setSection] = useState("dev");
@@ -36,22 +23,39 @@ export default function ProjectClient({ slug }: { slug: string }) {
   const [updatedAt, setUpdatedAt] = useState("");
   const [editing, setEditing] = useState(false);
   const [toast, setToast] = useState("");
-  const [status, setStatus] = useState("pending");
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskItems, setTaskItems] = useState(emptyItems);
+  const [taskTotals, setTaskTotals] = useState({ pending: 0, in_progress: 0, done: 0, failed: 0, reports: 0 });
+  const [taskOffsets, setTaskOffsets] = useState(emptyOffsets);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(true);
   const [chatWidth, setChatWidth] = useState(420);
   const dragging = useRef(false);
-  async function loadDoc(kind: string) {
+  const loadDoc = useCallback(async (kind: string) => {
     const r = await fetch(`/api/projects/${slug}/docs/${kind}`,{cache:"no-store"});
     if (r.ok) {setContent(await r.text());setEtag(r.headers.get("etag")||"");setUpdatedAt(r.headers.get("x-updated-at")||"");}
-  }
-  async function loadTasks(next = status) {
-    const r = await fetch(
-      `/api/projects/${slug}/${next === "reports" ? "reports" : "tasks"}${next === "reports" ? "" : `?status=${next}`}`,
-    );
-    if (r.ok) setTasks((await r.json()).items);
-  }
+  }, [slug]);
+  const loadSummary = useCallback(async () => {
+    const response = await fetch(`/api/projects/${slug}/tasks/summary`, { cache: "no-store" });
+    if (response.ok) setTaskTotals(await response.json());
+  }, [slug]);
+  const loadTaskSection = useCallback(async (key: TaskSectionKey, offset = taskOffsets[key]) => {
+    const endpoint = key === "reports" ? "reports" : `tasks?status=${key}`;
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const response = await fetch(`/api/projects/${slug}/${endpoint}${separator}limit=${key === "in-progress" ? 50 : 5}&offset=${offset}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json();
+    let allItems = body.items as TaskItem[];
+    if (key === "in-progress" && allItems.length < body.total) {
+      for (let nextOffset = 50; nextOffset < body.total; nextOffset += 50) {
+        const next = await fetch(`/api/projects/${slug}/tasks?status=in-progress&limit=50&offset=${nextOffset}`, { cache: "no-store" });
+        if (next.ok) allItems = allItems.concat((await next.json()).items);
+      }
+    }
+    setTaskItems((current) => ({ ...current, [key]: allItems }));
+  }, [slug, taskOffsets]);
+  const refreshTasks = useCallback(async () => {
+    await Promise.all([loadSummary(), ...sectionKeys.map((key) => loadTaskSection(key))]);
+  }, [loadSummary, loadTaskSection]);
   useEffect(() => {
     fetch(`/api/projects/${slug}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -64,19 +68,19 @@ export default function ProjectClient({ slug }: { slug: string }) {
     if (saved >= 320 && saved <= 720) setChatWidth(saved);
   }, []);
   useEffect(() => {
-    if (section === "tasks") void loadTasks();
+    if (section === "tasks") void refreshTasks();
     else {
       setOpenFile(null);
       void loadDoc(section);
     }
-  }, [section, status]);
+  }, [section, loadDoc, refreshTasks]);
   useEffect(() => {
     if (section !== "tasks") return;
-    const refresh = () => void loadTasks();
+    const refresh = () => void refreshTasks();
     const timer = window.setInterval(refresh, 5000);
     window.addEventListener("apms:tasks-changed", refresh);
     return () => { window.clearInterval(timer);window.removeEventListener("apms:tasks-changed", refresh); };
-  }, [section, status]);
+  }, [section, refreshTasks]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (!dragging.current) return;
@@ -115,7 +119,8 @@ export default function ProjectClient({ slug }: { slug: string }) {
     });
     if (r.ok) {
       e.currentTarget.reset();
-      await loadTasks("pending");
+      setTaskOffsets((current) => ({ ...current, pending: 0 }));
+      await Promise.all([loadSummary(), loadTaskSection("pending", 0)]);
     } else alert((await r.json()).error);
   }
   async function move(file: string, target: string) {
@@ -124,10 +129,10 @@ export default function ProjectClient({ slug }: { slug: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ target }),
     });
-    if (r.ok) await loadTasks();
+    if (r.ok) await refreshTasks();
   }
-  async function open(item: Task) {
-    const prefix = status === "reports" ? "reports" : "tasks";
+  async function open(item: TaskItem, itemSection: TaskSectionKey) {
+    const prefix = itemSection === "reports" ? "reports" : "tasks";
     const r = await fetch(`/api/projects/${slug}/${prefix}/${item.filename}`);
     if (r.ok) {
       setContent(await r.text());
@@ -147,7 +152,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
     if (!r.ok) throw new Error(body.error);
     return `${location.origin}${body.url}`;
   }
-  function openInChat(task: Task) {
+  function openInChat(task: TaskItem) {
     setChatOpen(true);localStorage.setItem("apms.project.chat.open","true");
     const prompt=`다음 작업지시서를 요약하고 현재 상태와 다음 조치를 알려줘: ${task.filename} — ${task.title}`;
     localStorage.setItem(`apms.chat.prompt.${slug}`,prompt);
@@ -192,101 +197,13 @@ export default function ProjectClient({ slug }: { slug: string }) {
           </>
         ) : (
           <div className="tasks-view">
-            <div className="task-tabs">
-              {statuses.map((s) => (
-                <button
-                  className={status === s.key ? "active" : ""}
-                  key={s.key}
-                  onClick={() => {
-                    setStatus(s.key);
-                    setOpenFile(null);
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
             {openFile ? (
               <>
                 <button onClick={() => setOpenFile(null)}>← 목록</button>
                 <MdViewer content={content} title={openFile} onShare={share} />
               </>
             ) : (
-              <>
-                {status === "pending" && (
-                  <form className="task-form" onSubmit={createTask}>
-                    <h2>새 작업지시서</h2>
-                    <label>
-                      제목
-                      <input name="title" required maxLength={120} />
-                    </label>
-                    <label>
-                      본문 Markdown
-                      <textarea name="body" required />
-                    </label>
-                    <div className="dependency-fields">
-                      <label>
-                        선행 작업
-                        <select name="pre-task">
-                          <option value="">없음</option>
-                          {tasks.map((t) => (
-                            <option key={t.id}>{t.filename}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        후속 작업
-                        <select name="next-task">
-                          <option value="">없음</option>
-                          {tasks.map((t) => (
-                            <option key={t.id}>{t.filename}</option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <button className="primary">등록</button>
-                  </form>
-                )}
-                <div className="task-list">
-                  {tasks.map((t) => (
-                    <div className="task-row" key={t.filename}>
-                      <button
-                        className="task-open"
-                        onClick={() => void open(t)}
-                      >
-                  <strong>{t.title || t.filename}</strong>
-                  <code>{t.filename}</code>
-                  {t.status === "in-progress" && (
-                    <span className="worker-badge">
-                      실행 중 · PID {t.pid ?? "-"} ·{" "}
-                      {t.elapsed_seconds ?? 0}
-                      초
-                    </span>
-                  )}
-                      </button>
-                      {status !== "reports" && (
-                        <select
-                          aria-label={`${t.filename} 상태 이동`}
-                          value={t.status}
-                          onChange={(e) =>
-                            void move(t.filename, e.target.value)
-                          }
-                        >
-                          {statuses.slice(0, 4).map((s) => (
-                            <option value={s.key} key={s.key}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <button className="open-in-chat" onClick={() => openInChat(t)}>챗봇에서 열기</button>
-                    </div>
-                  ))}
-                  {!tasks.length && (
-                    <div className="empty">항목이 없습니다.</div>
-                  )}
-                </div>
-              </>
+              <TaskSections slug={slug} items={taskItems} totals={taskTotals} offsets={taskOffsets} onCreate={createTask} onMove={(file,target)=>void move(file,target)} onOpen={(item,itemSection)=>void open(item,itemSection)} onOpenInChat={openInChat} onPage={(key,offset)=>{setTaskOffsets((current)=>({...current,[key]:offset}));void loadTaskSection(key,offset);}} />
             )}
           </div>
         )}

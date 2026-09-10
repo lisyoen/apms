@@ -51,6 +51,8 @@ Unauthorized and other non-existent user resources may unify to 404 to prevent i
 | patch | `/projects/{projectId}` | user | Edit name · view mode |
 | delete | `/projects/{projectId}` | user | project archive |
 | get | `/projects/{projectId}/tasks` | user | Task list by status |
+| get | `/projects/{projectId}/tasks/summary` | user | Task and report counts |
+| get | `/projects/{projectId}/reports` | user | Report list |
 | post | `/projects/{projectId}/tasks/from-chat` | user | Chatbot Order |
 | post | `/tasks/{taskId}/move` | user | Allowed state transitions |
 | get | `/tasks/{taskId}/report` | user | Latest reports |
@@ -198,9 +200,9 @@ If there is a job running, it returns 409, otherwise 204 after archive.
 
 ## 6. Tasks
 
-*Implementation status: partial*
+*Implementation status: implemented for the unversioned project task, report, and summary reads; remaining versioned APIs are partial*
 
-### GET `/projects/{projectId}/tasks?status=pending&cursor=&limit=20`
+### GET `/api/projects/{slug}/tasks?status=pending&limit=5&offset=0`
 
 ```json
 {
@@ -208,11 +210,25 @@ If there is a job running, it returns 409, otherwise 204 after archive.
 "id": "uuid", "filename": "20260909-001-task.md", "title": "Modify Login",
     "status":"pending","pre_task_id":null,"next_task_id":null,"created_at":"2026-09-09T06:00:00Z"
   }],
-  "next_cursor":null
+  "total":12,
+  "limit":5,
+  "offset":0
 }
 ```
 
-`status` can be specified as multiple commas, if omitted, the whole.
+`status` accepts a comma-separated list and returns all statuses when omitted. Offset pagination defaults to 5 items, caps `limit` at 50, and defaults invalid or missing `offset` to 0.
+
+### GET `/api/projects/{slug}/reports?limit=5&offset=0`
+
+Returns report Markdown metadata in the same `{items, total, limit, offset}` envelope, newest first. The default and maximum limits match the task list.
+
+### GET `/api/projects/{slug}/tasks/summary`
+
+```json
+{"pending":2,"in_progress":1,"done":7,"failed":0,"reports":3}
+```
+
+The endpoint applies the same authentication and project ownership checks as the task list. Task counts are grouped in one database query; the report count is read from the owned project's report directory.
 
 ### POST `/projects/{projectId}/tasks/from-chat`
 

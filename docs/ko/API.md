@@ -51,6 +51,8 @@ Markdown 원문 다운로드만 `text/markdown`을 반환한다.
 | PATCH | `/projects/{projectId}` | user | 이름·보기 방식 수정 |
 | DELETE | `/projects/{projectId}` | user | 프로젝트 archive |
 | GET | `/projects/{projectId}/tasks` | user | 상태별 작업 목록 |
+| GET | `/projects/{projectId}/tasks/summary` | user | 작업·리포트 개수 |
+| GET | `/projects/{projectId}/reports` | user | 리포트 목록 |
 | POST | `/projects/{projectId}/tasks/from-chat` | user | 챗봇 발주 |
 | POST | `/tasks/{taskId}/move` | user | 허용 상태 전이 |
 | GET | `/tasks/{taskId}/report` | user | 최신 보고서 |
@@ -189,9 +191,9 @@ slug 변경은 파일 경로 이동을 수반하므로 P1 API에서 허용하지
 
 ## 6. 작업
 
-*Implementation status: partial*
+*Implementation status: 비버전 프로젝트 작업·리포트·요약 조회 구현 완료, 나머지 버전 API는 부분 구현*
 
-### GET `/projects/{projectId}/tasks?status=pending&cursor=&limit=20`
+### GET `/api/projects/{slug}/tasks?status=pending&limit=5&offset=0`
 
 ```json
 {
@@ -199,11 +201,25 @@ slug 변경은 파일 경로 이동을 수반하므로 P1 API에서 허용하지
     "id":"uuid","filename":"20260909-001-task.md","title":"로그인 수정",
     "status":"pending","pre_task_id":null,"next_task_id":null,"created_at":"2026-09-09T06:00:00Z"
   }],
-  "next_cursor":null
+  "total":12,
+  "limit":5,
+  "offset":0
 }
 ```
 
-`status`는 쉼표로 복수 지정할 수 있으며 생략하면 전체다.
+`status`는 쉼표로 복수 지정할 수 있으며 생략하면 전체다. offset 페이징은 기본 5개이고 `limit`은 최대 50이며, `offset`이 없거나 유효하지 않으면 0이다.
+
+### GET `/api/projects/{slug}/reports?limit=5&offset=0`
+
+최신순 리포트 Markdown 메타데이터를 같은 `{items, total, limit, offset}` 구조로 반환한다. 기본값과 상한은 작업 목록과 같다.
+
+### GET `/api/projects/{slug}/tasks/summary`
+
+```json
+{"pending":2,"in_progress":1,"done":7,"failed":0,"reports":3}
+```
+
+작업 목록과 같은 인증·프로젝트 소유권 검증을 적용한다. 작업 개수는 DB 쿼리 한 번으로 상태별 집계하고, 리포트 개수는 소유 프로젝트의 리포트 디렉터리에서 읽는다.
 
 ### POST `/projects/{projectId}/tasks/from-chat`
 
