@@ -401,6 +401,31 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 
 ## 12. 챗봇 발주 프롬프트 계약
 
+### `append_planning` 도구
+
+*구현 상태: 구현 완료*
+
+프로젝트 챗은 LLM 내부 도구로 다음 스키마를 제공합니다.
+
+```json
+{
+  "name": "append_planning",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "project": { "type": "string" },
+      "date": { "type": "string", "description": "Asia/Seoul 기준 YYYY-MM-DD" },
+      "entries": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+    },
+    "required": ["project", "date", "entries"]
+  }
+}
+```
+
+서버는 소유 프로젝트를 확인하고 proposal Markdown 전체를 보존하면서 `## 기획 YYYY-MM-DD` 절을 재사용하거나 생성하며, 정규화한 bullet을 비교해 중복을 병합합니다. 문서별 잠금으로 챗 append를 직렬화하고, 쓰기마다 content hash를 조건부 비교해 충돌 시 한 번 재시도한 뒤에도 충돌하면 `planning_write_conflict`를 반환합니다. `sk-`, `cfut_`, `password=` 같은 자격 증명 패턴이 있는 항목은 파일을 바꾸지 않고 `planning_secret_rejected`로 거부합니다. 기존 `update_doc`과 `create_task` 계약은 유지합니다.
+
+성공 응답은 서버가 `기획서에 기록했습니다.`, `기록 위치: proposal > ## 기획 YYYY-MM-DD`, `요약: …`, `열린 질문: …`(또는 `없음`)의 네 줄로 생성합니다. 사용자가 구현·발주·배포를 명시한 경우에만 작업 발주 줄을 추가합니다.
+
 *Implementation status: partial*
 
 LLM 입력은 시스템 규칙, project guide, 제한된 대화 컨텍스트, 현재 사용자 요청 순서다.

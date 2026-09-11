@@ -46,6 +46,12 @@ The header shows the current display name, falling back to the account email. Se
 
 Only users with the `admin` role receive the **Admin** header link. Both the `/admin` server page and every `/api/admin/*` handler verify that role on the server; direct non-admin page access shows a Korean 403 permission screen and admin APIs return HTTP 403.
 
+## Planning in project chat
+
+Project chat treats explicit planning keywords, requirement commands, and multi-item requirement lists as planning input. It refines concrete requirements, decisions, and open questions into bullets under `## 기획 YYYY-MM-DD` in the project's `.proposal.md`; an existing date section is reused and normalized duplicates are merged. A content-free prompt such as “shall we plan?” asks for details without changing the proposal, and ordinary questions or status requests do not change it.
+
+After a successful append, chat always confirms the proposal location, summary, and open questions in a fixed four-line response. A task is created only when the user explicitly also asks to implement, order, or deploy, and planning is recorded first. Suspected credentials are rejected rather than written.
+
 ## Design documents
 
 English is the source language for design documents. Korean translations use the same filenames under `docs/ko/`.

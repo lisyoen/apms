@@ -410,6 +410,31 @@ The response uses` text/markdown; charset = utf-8 `and a secure attachment file 
 
 ## 12. Chatbot Order Prompt Contract
 
+### `append_planning` tool
+
+*Implementation status: implemented*
+
+Project chat exposes an internal LLM tool with this schema:
+
+```json
+{
+  "name": "append_planning",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "project": { "type": "string" },
+      "date": { "type": "string", "description": "YYYY-MM-DD in Asia/Seoul" },
+      "entries": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+    },
+    "required": ["project", "date", "entries"]
+  }
+}
+```
+
+The server resolves the owned project, preserves the complete proposal Markdown, reuses or creates `## 기획 YYYY-MM-DD`, and compares normalized bullets to merge duplicates. A per-document lock serializes chat appends; each write also compares the content hash and retries one conflict before returning `planning_write_conflict`. Entries matching credential patterns such as `sk-`, `cfut_`, or `password=` return `planning_secret_rejected` without changing the file. `update_doc` remains available and `create_task` keeps its existing contract.
+
+Successful chat responses are server-generated as `기획서에 기록했습니다.`, `기록 위치: proposal > ## 기획 YYYY-MM-DD`, `요약: …`, and `열린 질문: …` (or `없음`). An additional task-order line appears only for an explicit implementation/order/deployment request.
+
 *Implementation status: partial*
 
 LLM inputs are system rules, project guide, restricted conversation context, and current user request sequence.

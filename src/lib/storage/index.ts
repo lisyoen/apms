@@ -1,7 +1,8 @@
-import { createHash } from "node:crypto";
-import { access, mkdir, open, readFile, readdir, rename, stat } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { access, mkdir, open, readFile, readdir, rename, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { Pool, PoolClient } from "pg";
+import { containsPlanningSecret } from "@/lib/chat/planning";
 
 export const DOC_KINDS = ["guide", "setting", "proposal", "dev", "next"] as const;
 export const TASK_STATUSES = ["pending", "in-progress", "done", "failed"] as const;
@@ -25,11 +26,61 @@ const templates: Record<Exclude<DocKind, "setting">, (name: string) => string> =
   next: (name) => `# ${name} 핸드오버\n\n## 현재 목표\n\n## 확정 결정\n\n## 최근 작업\n\n## 열린 질문\n\n## 다음 행동\n`,
 };
 export async function renderSettingTemplate(project: string, now = new Date()) { const file = path.join(process.cwd(), "src/lib/storage/templates/setting.md"); const template = await readFile(file, "utf8"); return template.replaceAll("{project}", project).replaceAll("{created_at}", now.toISOString().slice(0, 10)); }
-async function atomicWrite(file: string, content: string, exclusive = false) { await mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${process.pid}.${Date.now()}.tmp`; const handle = await open(temp, exclusive ? "wx" : "w"); try { await handle.writeFile(content, "utf8"); await handle.sync(); } finally { await handle.close(); } try { if (exclusive) await access(file).then(() => { throw new Error("file_exists"); }).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; }); await rename(temp, file); } catch (error) { throw error; } }
+async function atomicWrite(file: string, content: string, exclusive = false) { await mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${process.pid}.${randomUUID()}.tmp`; const handle = await open(temp, exclusive ? "wx" : "w"); try { await handle.writeFile(content, "utf8"); await handle.sync(); } finally { await handle.close(); } try { if (exclusive) await access(file).then(() => { throw new Error("file_exists"); }).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; }); await rename(temp, file); } catch (error) { await unlink(temp).catch(() => {}); throw error; } }
 export async function initializeProject(user: string, project: string, name: string) { const root = projectRoot(user, project); await mkdir(path.join(root, "docs"), { recursive: true }); await mkdir(path.join(dataRoot(), user, "docs"), { recursive: true }); await Promise.all([...TASK_STATUSES, "reports"].map((s) => mkdir(path.join(root, "tasks", s), { recursive: true }))); const setting = await renderSettingTemplate(name); await Promise.all(DOC_KINDS.map(async (kind) => { const file = docPath(user, project, kind); try { await atomicWrite(file, kind === "setting" ? setting : templates[kind](name), true); } catch (e) { if (!(e instanceof Error) || e.message !== "file_exists") throw e; } })); return root; }
 export async function readDocument(user: string, project: string, kind: DocKind) { return readFile(docPath(user, project, kind), "utf8"); }
 export async function documentMetadata(user: string, project: string, kind: DocKind) { const file=docPath(user,project,kind);const [content,info]=await Promise.all([readFile(file,"utf8"),stat(file)]);return{content,etag:`"${contentHash(content)}"`,updatedAt:info.mtime.toISOString()}; }
 export async function writeDocument(user: string, project: string, kind: DocKind, content: string) { await atomicWrite(docPath(user, project, kind), content); }
+
+export type PlanningAppendResult = { date: string; added: string[]; duplicates: string[]; section: string };
+function normalizePlanningEntry(value: string) { return value.normalize("NFKC").replace(/^\s*(?:[-*+]\s+|\d+[.)]\s*)/, "").replace(/\s+/g, " ").replace(/[.!?。！？]+$/g, "").trim().toLocaleLowerCase("ko-KR"); }
+function planningSection(content: string, date: string) {
+  const heading = `## 기획 ${date}`;
+  const start = content.split(/\r?\n/).findIndex((line) => line.trim() === heading);
+  if (start < 0) return null;
+  const lines = content.split(/\r?\n/);
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index++) if (/^##\s+/.test(lines[index])) { end = index; break; }
+  return { heading, lines, start, end };
+}
+export function mergePlanningSection(content: string, date: string, entries: string[]): PlanningAppendResult & { content: string } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) throw new Error("invalid_planning_date");
+  const clean = entries.map((entry) => String(entry).replace(/\r?\n+/g, " ").trim().replace(/^(?:[-*+]\s+|\d+[.)]\s*)/, "").trim()).filter(Boolean);
+  if (!clean.length) throw new Error("planning_entries_required");
+  if (clean.some(containsPlanningSecret)) throw new Error("planning_secret_rejected");
+  const section = planningSection(content, date);
+  const existingLines = section ? section.lines.slice(section.start + 1, section.end) : [];
+  const existing = new Set(existingLines.filter((line) => /^\s*[-*+]\s+/.test(line)).map(normalizePlanningEntry));
+  const added: string[] = [], duplicates: string[] = [];
+  for (const entry of clean) { const normalized = normalizePlanningEntry(entry); if (!normalized || existing.has(normalized)) duplicates.push(entry); else { existing.add(normalized); added.push(entry); } }
+  let next = content;
+  if (section) {
+    if (added.length) { const insert = added.map((entry) => `- ${entry}`); const before = section.lines.slice(0, section.end); while (before.length > section.start + 1 && before.at(-1) === "") before.pop(); next = [...before, ...insert, "", ...section.lines.slice(section.end)].join("\n"); }
+  } else if (added.length) next = `${content.replace(/\s*$/, "")}\n\n## 기획 ${date}\n\n${added.map((entry) => `- ${entry}`).join("\n")}\n`;
+  return { content: next, date, added, duplicates, section: `## 기획 ${date}` };
+}
+async function withPlanningLock<T>(file: string, action: () => Promise<T>) {
+  const lock = `${file}.planning.lock`;
+  await mkdir(path.dirname(file), { recursive: true });
+  let handle;
+  for (let attempt = 0; attempt < 100; attempt++) { try { handle = await open(lock, "wx"); break; } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; await new Promise((resolve) => setTimeout(resolve, 10)); } }
+  if (!handle) throw new Error("planning_lock_timeout");
+  try { return await action(); } finally { await handle.close(); await unlink(lock).catch(() => {}); }
+}
+export async function appendPlanning(user: string, project: string, date: string, entries: string[], beforeCompare?: (attempt: number) => Promise<void>) {
+  const file = docPath(user, project, "proposal");
+  return withPlanningLock(file, async () => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const original = await readFile(file, "utf8"), expected = contentHash(original), merged = mergePlanningSection(original, date, entries);
+      if (!merged.added.length) return merged;
+      await beforeCompare?.(attempt);
+      if (contentHash(await readFile(file, "utf8")) !== expected) continue;
+      await atomicWrite(file, merged.content);
+      return merged;
+    }
+    throw new Error("planning_write_conflict");
+  });
+}
 export function normalizeDocumentEtag(value: string) {
   const normalized=value.trim().replace(/^W\//i,"").trim().replace(/^"|"$/g,"");
   return /^[a-f0-9]{64}$/i.test(normalized)?normalized.toLowerCase():null;
