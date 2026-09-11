@@ -1,4 +1,4 @@
-(폐지) Dirigo 기획 inbox (planning/additional.txt) — 2026-09-11 11:05 부로 사용하지 않음. 이력 파일 planning/history.md 도 2026-09-11 11:15 부로 폐지(기록은 GitHub 기획 이슈 댓글이 단일 기록).
+# (폐지) Dirigo 기획 inbox — 2026-09-11 11:05 부로 사용하지 않음. 기획 입력·반영 상태·결과는 GitHub 오늘자 "기획 YYYY-MM-DD" 이슈 본문·댓글이 단일 창구. planning/history.md 도 폐지. 아래는 이력 참고용.
 
 **[2026-09-11 11:05 폐지]** 기획 입력 위치는 GitHub 일자별 기획 이슈 `기획 YYYY-MM-DD`(label planning) 의 본문·댓글로 전환되었습니다. 이 파일에는 더 이상 기획을 적지 않으며 이력 참고용으로만 남깁니다(반영 이력은 planning/history.md).
 

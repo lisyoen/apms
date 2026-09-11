@@ -176,7 +176,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
           ))}
         </nav>
       </aside>
-      <section className="project-content">
+      <section className={`project-content ${section === "tasks" ? "tasks-active" : ""}`}>
         {toast&&<div className="toast" role="status">{toast}</div>}
         {section !== "tasks" ? (
           <>
@@ -196,10 +196,10 @@ export default function ProjectClient({ slug }: { slug: string }) {
         ) : (
           <div className="tasks-view">
             {openFile ? (
-              <>
+              <div className="task-detail-scroll" data-testid="task-detail-scroll">
                 <button onClick={() => setOpenFile(null)}>← 목록</button>
                 <MdViewer content={content} title={openFile} onShare={share} />
-              </>
+              </div>
             ) : (
               <TaskSections slug={slug} items={taskItems} totals={taskTotals} offsets={taskOffsets} onNewTask={()=>setNewTaskOpen(true)} onMove={(file,target)=>void move(file,target)} onOpen={(item,itemSection)=>void open(item,itemSection)} onOpenInChat={openInChat} onPage={(key,offset)=>{setTaskOffsets((current)=>({...current,[key]:offset}));void loadTaskSection(key,offset);}} />
             )}
