@@ -40,9 +40,9 @@ The production server uses port `9107` by default. Never commit `.env` or creden
 
 ## Account and administration screens
 
-*Implementation status: minimal settings screen implemented; editing is planned in #033*
+*Implementation status: implemented*
 
-The header shows the current display name, falling back to the account email. Selecting it opens the authenticated `/settings` screen, which currently provides read-only email, slug, role, and display-name details. Mobile email and telephone auto-detection is disabled, and Dirigo does not turn the account label into an email action.
+The header shows the current display name, falling back to the account email. Selecting it opens authenticated `/settings`: four cards cover account details and display name, independent password change, UI language/chat width/default task sections, and completion-email preferences. A sticky bar saves or cancels profile/preferences changes, warns about unsaved navigation, and updates the header immediately; password changes submit separately. Mobile email and telephone auto-detection remains disabled.
 
 Only users with the `admin` role receive the **Admin** header link. Both the `/admin` server page and every `/api/admin/*` handler verify that role on the server; direct non-admin page access shows a Korean 403 permission screen and admin APIs return HTTP 403.
 

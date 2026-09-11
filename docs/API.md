@@ -514,3 +514,11 @@ Chat submission performs the same live health check before storing a user messag
 *Implementation status: implemented*
 
 Session detail responses include `created_at` for every message and a one-based `handover_number` for the session chain. Successful chat events include `created_at` for the assistant message and `user_created_at` for the stored user message. Clients display KST as `HH:mm` for today or `M/d HH:mm` otherwise, with the full ISO timestamp in the DOM tooltip.
+
+## Current-user settings
+
+*Implementation status: implemented*
+
+`GET /api/me` returns only the signed-in user's account fields and normalized preferences. `PUT /api/me` accepts `display_name` (1–40 characters) and complete preferences: `language` (`ko|en`), `chat_panel_width` (320–720), `task_default_sections`, `email_notifications`, and a valid `notification_email`. Invalid payloads return 400.
+
+`POST /api/me/password` accepts current, new, and confirmation passwords. New passwords require eight characters; malformed or mismatched input returns 400 and an incorrect current password returns 403. All routes are session-owner only.

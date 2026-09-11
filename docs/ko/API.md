@@ -515,3 +515,11 @@ Implementation status: 구현 완료 (#017).
 *Implementation status: implemented*
 
 세션 상세 응답은 모든 메시지의 `created_at`과 세션 체인의 1부터 시작하는 `handover_number`를 포함합니다. 채팅 성공 이벤트에는 assistant 메시지의 `created_at`과 저장된 사용자 메시지의 `user_created_at`이 포함됩니다. 클라이언트는 KST 기준 오늘은 `HH:mm`, 그 외에는 `M/d HH:mm`으로 표시하고 DOM 툴팁에는 전체 ISO 시각을 둡니다.
+
+## 현재 사용자 설정
+
+*Implementation status: implemented*
+
+`GET /api/me`는 로그인 본인의 계정 필드와 정규화된 preferences를 반환합니다. `PUT /api/me`는 1~40자의 `display_name`과 `language`(`ko|en`), 320~720의 `chat_panel_width`, `task_default_sections`, `email_notifications`, 올바른 `notification_email`을 받습니다. 잘못된 입력은 400입니다.
+
+`POST /api/me/password`는 현재·새·확인 비밀번호를 받습니다. 새 비밀번호는 8자 이상이며 형식·확인 불일치는 400, 현재 비밀번호 불일치는 403입니다. 모든 경로는 세션 본인만 사용할 수 있습니다.

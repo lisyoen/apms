@@ -125,6 +125,7 @@ erDiagram
 | `password_hash` | text | SSO 전 단계의 단방향 해시 |
 | `role` | user_role | `admin`, `user` |
 | `display_name` | text | nullable |
+| `preferences` | jsonb | not null, 기본값 `{}`; 언어, 채팅 폭, 작업 섹션, 이메일 알림 |
 | `created_at` | timestamptz | 생성 시각 |
 | `updated_at` | timestamptz | 수정 시각 |
 | `disabled_at` | timestamptz | nullable, 로그인 차단 |

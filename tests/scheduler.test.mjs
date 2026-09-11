@@ -86,3 +86,7 @@ test("전 작업 완료 시 notifications 한 행만 기록", { concurrency: fal
   await f.scheduler.tick(); await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(Number((await pool.query("SELECT count(*) count FROM notifications WHERE project_id=$1", [f.project.id])).rows[0].count), 1);
 });
+
+test("완료 이메일 알림 off 사용자는 발송 행을 만들지 않음", { concurrency: false }, async () => {
+  const f=await fixture();await pool.query("UPDATE users SET preferences=$1::jsonb WHERE id=$2",[JSON.stringify({email_notifications:false}),f.user.id]);const file="20260909-008-task.md";await addTask(f,file);await f.scheduler.tick();await waitFor(async()=>(await pool.query("SELECT status FROM tasks WHERE project_id=$1 AND filename=$2",[f.project.id,file])).rows[0]?.status==="done");await new Promise(resolve=>setTimeout(resolve,50));assert.equal(Number((await pool.query("SELECT count(*) count FROM notifications WHERE project_id=$1",[f.project.id])).rows[0].count),0);
+});

@@ -125,6 +125,7 @@ erDiagram
 | `password_hash` | text | One-way hash before SSO |
 | `role` | user_role | `admin`, `user` |
 | `display_name` | text | nullable |
+| `preferences` | jsonb | not null, default `{}`; language, chat width, task sections, email notifications |
 | `created_at` | timestamptz | Created at |
 | `updated_at` | timestamptz | Edit time |
 | `disabled_at` | timestamptz | nullable, blocking login |

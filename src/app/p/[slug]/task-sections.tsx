@@ -45,6 +45,7 @@ export default function TaskSections({ slug, items, totals, offsets, onNewTask, 
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
       if (saved && typeof saved === "object") setExpanded((current) => ({ ...current, ...saved }));
+      else { const defaults=JSON.parse(localStorage.getItem("apms.tasks.default.sections")||"null");if(Array.isArray(defaults))setExpanded(Object.fromEntries(sections.map(({key})=>[key,defaults.includes(key)])) as Record<TaskSectionKey,boolean>); }
     } catch { /* Ignore malformed browser state and retain defaults. */ }
   }, [storageKey]);
 
