@@ -1,4 +1,4 @@
-# APMS file and folder specifications
+# Dirigo file and folder specifications
 
 ## 1. Purpose
 

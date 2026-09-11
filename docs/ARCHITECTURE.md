@@ -1,10 +1,12 @@
-# APMS Architecture
+# Dirigo Architecture
+
+> Naming history: The product name changed to Dirigo on 2026-09-11; compatibility identifiers remain unchanged.
 
 ## 1. Purpose and scope
 
 *Implementation status: partial*
 
-This document defines the logical and deployment architecture for APMS P1.
+This document defines the logical and deployment architecture for Dirigo P1.
 Phase 1 targets a single operator who is both administrator and user, Phase 2 targets isolated multi-user operation, and Phase 3 adds SSO.
 Markdown files are the operational source of truth; PostgreSQL is the search, state, and aggregation index.
 
@@ -36,7 +38,7 @@ File-first storage, ownership checks, run records, and a runner interface exist.
 | Scheduler | Scan pending work, check dependencies, allocate slots | Scheduler state |
 | Worker runner | Run an OpenCode subprocess and determine the result | Run logs and report |
 | Email notification | Notify when a project workload finishes | Delivery result |
-| APMS MCP server | Project, task, and document tools for external agents | None |
+| Dirigo MCP server | Project, task, and document tools for external agents | None |
 
 The web, database, storage, scheduler, runner, and email adapter are implemented. The MCP server is planned.
 
@@ -48,7 +50,7 @@ The web, database, storage, scheduler, runner, and email adapter are implemented
 flowchart LR
   U[Browser user] --> W[Next.js UI and API]
   A[Administrator] --> W
-  M[External agent] --> MCP[APMS MCP server]
+  M[External agent] --> MCP[Dirigo MCP server]
   MCP --> SVC[Application services]
   W --> SVC
   SVC --> DB[(PostgreSQL)]
@@ -187,7 +189,7 @@ Run records, usage aggregation, scheduler heartbeat, and health checks exist; fu
 
 ```mermaid
 flowchart TB
-  I[Internet] --> D[APMS domain]
+  I[Internet] --> D[Dirigo domain]
   D --> APP[Next.js and scheduler]
   APP --> PG[(PostgreSQL)]
   APP --> VOL[(Local data volume)]
@@ -215,7 +217,7 @@ Only one scheduler may dispatch work, selected by an advisory lock or leader lea
 ```mermaid
 flowchart LR
   U[Organization user] --> IDP[Keycloak]
-  IDP --> APP[APMS]
+  IDP --> APP[Dirigo]
   APP --> MAP[Group and role mapping]
   APP --> CORE[Phase 2 topology]
 ```

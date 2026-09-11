@@ -1,4 +1,4 @@
-# APMS rest API design
+# Dirigo REST API design
 
 ## 1. Common Agreement
 

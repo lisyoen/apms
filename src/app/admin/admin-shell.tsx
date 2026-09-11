@@ -10,7 +10,7 @@ export default function AdminShell() {
     <main className="admin-app">
       <aside>
         <div className="admin-logo">
-          APMS <small>ADMIN</small>
+          Dirigo <small>ADMIN</small>
         </div>
         {menus.map((x) => (
           <button

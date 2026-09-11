@@ -1,6 +1,6 @@
-# APMS design documentation
+# Dirigo design documentation
 
-English is the source language for APMS design documentation. Korean translations are maintained under [`ko/`](ko/README.md) with matching filenames and section structures.
+English is the source language for Dirigo design documentation. Korean translations are maintained under [`ko/`](ko/README.md) with matching filenames and section structures.
 
 Each level-two design section includes `Implementation status: implemented|partial|planned` based on the current repository implementation. `partial` means that at least one material part of the documented contract is not yet shipped.
 

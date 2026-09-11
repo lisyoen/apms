@@ -1,4 +1,4 @@
-# APMS REST API 설계
+# Dirigo REST API 설계
 
 ## 1. 공통 계약
 

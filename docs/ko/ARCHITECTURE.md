@@ -1,10 +1,12 @@
-# APMS 아키텍처
+# Dirigo 아키텍처
+
+> 명칭 변경 이력: 2026-09-11 제품명을 Dirigo(디리고)로 변경했으며 호환 식별자는 유지합니다.
 
 ## 1. 목적과 범위
 
 *Implementation status: partial*
 
-이 문서는 APMS P1의 논리·배포 아키텍처와 주요 요청 흐름을 정의한다.
+이 문서는 Dirigo P1의 논리·배포 아키텍처와 주요 요청 흐름을 정의한다.
 1차는 관리자 겸 사용자 1인 운영, 2차는 격리된 다중 사용자, 3차는 SSO 연동을 목표로 한다.
 Markdown 파일을 업무 원본으로, PostgreSQL을 검색·상태·집계 인덱스로 사용한다.
 
@@ -34,7 +36,7 @@ Markdown 파일을 업무 원본으로, PostgreSQL을 검색·상태·집계 인
 | 스케줄러 | pending 스캔, 의존성 확인, 슬롯 배정 | DB lease |
 | 워커 러너 | OpenCode subprocess 실행과 결과 판정 | 실행 로그 |
 | 메일 알림 | 프로젝트 작업군 완료 통지 | 전송 결과 |
-| APMS MCP 서버 | 에이전트용 프로젝트·작업·문서 도구 | 없음 |
+| Dirigo MCP 서버 | 에이전트용 프로젝트·작업·문서 도구 | 없음 |
 
 ## 4. 논리 구조
 
@@ -44,7 +46,7 @@ Markdown 파일을 업무 원본으로, PostgreSQL을 검색·상태·집계 인
 flowchart LR
   U[브라우저 사용자] --> W[Next.js UI와 API]
   A[관리자] --> W
-  M[외부 에이전트] --> MCP[APMS MCP 서버]
+  M[외부 에이전트] --> MCP[Dirigo MCP 서버]
   MCP --> SVC[애플리케이션 서비스]
   W --> SVC
   SVC --> DB[(PostgreSQL)]

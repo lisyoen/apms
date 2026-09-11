@@ -1,4 +1,4 @@
-# APMS scheduler and worker design
+# Dirigo scheduler and worker design
 
 ## 1. Purpose
 

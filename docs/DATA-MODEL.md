@@ -1,4 +1,4 @@
-# APMS Data Model
+# Dirigo Data Model
 
 ## 1. Purpose
 

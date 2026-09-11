@@ -1,3 +1,3 @@
 import Link from "next/link";
 import styles from "./page.module.css";
-export default function Home() { return <main className={styles.hero}><div className={styles.mark}>AP</div><p className={styles.eyebrow}>AI WORKSPACE</p><h1>APMS - AI Project Management System</h1><p className={styles.description}>에이전트와 함께 프로젝트를 계획하고 실행하는 관리 시스템입니다.</p><Link className={styles.button} href="/login">로그인</Link></main>; }
+export default function Home() { return <main className={styles.hero}><div className={styles.mark}>D</div><p className={styles.eyebrow}>AI WORKSPACE</p><h1>Dirigo</h1><p className={styles.description}>AI-directed project management</p><Link className={styles.button} href="/login">로그인</Link></main>; }

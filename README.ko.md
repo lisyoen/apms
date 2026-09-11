@@ -1,6 +1,14 @@
-# APMS - AI Project Management System
+# Dirigo
 
-APMS는 프로젝트 지침, 작업지시서 큐, LLM 기반 멀티 워커 실행을 제공하는 오픈소스 다중 사용자 AI 프로젝트 관리 시스템입니다.
+**Dirigo — AI-directed project management**
+
+디리고는 프로젝트 지침, 작업지시서 큐, LLM 기반 멀티 워커 실행을 제공하는 오픈소스 다중 사용자 프로젝트 관리 시스템입니다.
+
+## 이름
+
+이름은 “지휘하다, 똑바로 이끌다”라는 뜻의 라틴어 *dirigere*에서 왔습니다. *Dirigo*는 1인칭 현재형으로 “나는 지휘한다” 또는 “나는 이끈다”라는 뜻입니다. 영어 *direct*·*director*, 독일어 *Dirigent*, 스페인어 *dirigir*와 같은 어근이며, 미국 메인주의 표어 “Dirigo (I lead)”이기도 합니다.
+
+이 이름은 AI가 프로젝트를 지휘한다는 뜻을 한 단어로 압축하고 director와 conductor의 뉘앙스를 함께 담습니다. 세 음절이라 한국어와 영어로 발음하기 쉽고(디리고), 이름 충돌이 적으며, 도메인·`dirigo run` 같은 CLI·`dirigo` 패키지명으로 자연스럽게 확장할 수 있습니다.
 
 English documentation is available in [README.md](README.md).
 
