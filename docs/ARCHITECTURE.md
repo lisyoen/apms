@@ -259,6 +259,8 @@ The shared header session picker lists the current project's sessions—or only 
 
 The header stays fixed while only the message list scrolls. New content follows automatically only within 80 px of the bottom; otherwise a latest-message control with an unread badge appears. User and completed assistant cards copy their stored raw Markdown `content`, with a legacy clipboard fallback.
 
+The composer remains editable while an assistant response is pending, preserving focus and cursor position. During that period only submission is locked: the send button is disabled, plain Enter does not submit (and remains available for a newline), and an `aria-live` status explains that sending resumes after generation. Each session's independent draft is stored under `apms.chat.draft.<sessionId>` in `sessionStorage` after a 300 ms debounce and restored on session changes or reloads. The submitted draft is cleared, while text typed during generation survives response completion, errors, session-list refreshes, resizing, and fullscreen transitions. Completion only returns focus to an empty composer; errors keep the submitted user card and never restore its text over a newer draft.
+
 ## 14. Shared Markdown editor
 
 *Implementation status: implemented*

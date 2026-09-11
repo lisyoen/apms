@@ -17,6 +17,11 @@ import {
   restoredChatPanelWidth,
 } from "./panel-width";
 import { isNearBottom } from "./scroll";
+import {
+  debounceChatDraft,
+  deleteChatDraft,
+  readChatDraft,
+} from "./draft-storage";
 import "./ChatPanel.css";
 
 export type ChatPanelLayout = "page" | "panel" | "fullscreen";
@@ -195,6 +200,7 @@ export default function ChatPanel({
             message: "기본 LLM 연결이 지정되지 않았습니다.",
           },
     );
+  const activeId = active?.id;
   const root = useRef<HTMLElement>(null),
     conversation = useRef<HTMLDivElement>(null),
     bottom = useRef<HTMLDivElement>(null),
@@ -202,6 +208,11 @@ export default function ChatPanel({
     forceNextScroll = useRef(false),
     previousMessages = useRef<Message[]>([]),
     copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    inputRef = useRef<HTMLTextAreaElement>(null),
+    currentInput = useRef(initialPrompt),
+    pendingExternalPrompt = useRef(initialPrompt),
+    restoredDraftSession = useRef<string | null>(null),
     dragging = useRef(false),
     width = useRef(DEFAULT_CHAT_PANEL_WIDTH);
   const load = useCallback(async () => {
@@ -248,10 +259,31 @@ export default function ChatPanel({
       .then((p) => setProjectTitle(p?.name || projectSlug));
     const draft = localStorage.getItem(`apms.chat.prompt.${projectSlug}`);
     if (draft) {
+      pendingExternalPrompt.current = draft;
+      currentInput.current = draft;
       setInput(draft);
       localStorage.removeItem(`apms.chat.prompt.${projectSlug}`);
     }
   }, [projectSlug]);
+  useEffect(() => {
+    if (!activeId) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    const restored =
+      pendingExternalPrompt.current || readChatDraft(sessionStorage, activeId);
+    pendingExternalPrompt.current = "";
+    restoredDraftSession.current = activeId;
+    currentInput.current = restored;
+    setInput(restored);
+  }, [activeId]);
+  useEffect(() => {
+    if (!activeId) return;
+    if (restoredDraftSession.current !== activeId) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = debounceChatDraft(sessionStorage, activeId, input);
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+  }, [activeId, input]);
   useEffect(() => {
     if (!sessions.length || active) return;
     const saved = localStorage.getItem(chatSessionStorageKey(projectSlug));
@@ -287,6 +319,8 @@ export default function ChatPanel({
     const receive = (event: Event) => {
       const prompt = (event as CustomEvent<{ prompt: string }>).detail?.prompt;
       if (prompt) {
+        pendingExternalPrompt.current = active ? "" : prompt;
+        currentInput.current = prompt;
         setInput(prompt);
         if (projectSlug)
           localStorage.removeItem(`apms.chat.prompt.${projectSlug}`);
@@ -294,7 +328,7 @@ export default function ChatPanel({
     };
     window.addEventListener("apms:chat-prompt", receive);
     return () => window.removeEventListener("apms:chat-prompt", receive);
-  }, [projectSlug]);
+  }, [active, projectSlug]);
   useEffect(() => {
     if (
       layout === "panel" &&
@@ -392,7 +426,11 @@ export default function ChatPanel({
   async function send() {
     const text = input.trim();
     if (!text || !active || active.status !== "active" || busy) return;
+    const sentSessionId = active.id;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    currentInput.current = "";
     setInput("");
+    deleteChatDraft(sessionStorage, sentSessionId);
     setBusy(true);
     forceNextScroll.current = true;
     const optimistic = `pending-${Date.now()}`;
@@ -405,47 +443,48 @@ export default function ChatPanel({
         created_at: new Date().toISOString(),
       },
     ]);
-    const r = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ session_id: active.id, message: text }),
-    });
-    if (!r.ok) {
-      const e = await r.json().catch(() => ({ error: "응답 오류" }));
-      setMessages((v) => v.filter((message) => message.id !== optimistic));
-      setNotice(e.error);
-      if (e.code)
-        setLlmStatus({
-          reason: e.code,
-          ok: false,
-          message: String(e.error).replace(/^LLM 연결 (필요|불가):\s*/, ""),
-          last_error: e.last_error,
-          is_admin: llmStatus?.is_admin,
-        });
-      setBusy(false);
-      return;
-    }
-    const raw = await r.text();
-    for (const line of raw.split("\n"))
-      if (line.startsWith("data: ")) {
-        const data = JSON.parse(line.slice(6));
-        if (!data.content) continue;
-        setMessages((v) => [
-          ...v.map((message) =>
-            message.id === optimistic
-              ? { ...message, created_at: data.user_created_at }
-              : message,
-          ),
-          {
-            role: "assistant",
-            content: data.content,
-            created_at: data.created_at,
-            metadata: { cards: data.cards },
-          },
-        ]);
-        setActive(
-          (v) =>
-            v && {
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session_id: sentSessionId, message: text }),
+      });
+      if (!r.ok) {
+        const e = await r
+          .json()
+          .catch(() => ({ error: "요청을 처리하지 못했습니다" }));
+        setNotice(e.error || "요청을 처리하지 못했습니다");
+        if (e.code)
+          setLlmStatus({
+            reason: e.code,
+            ok: false,
+            message: String(e.error).replace(/^LLM 연결 (필요|불가):\s*/, ""),
+            last_error: e.last_error,
+            is_admin: llmStatus?.is_admin,
+          });
+        return;
+      }
+      const raw = await r.text();
+      for (const line of raw.split("\n"))
+        if (line.startsWith("data: ")) {
+          const data = JSON.parse(line.slice(6));
+          if (!data.content) continue;
+          setMessages((v) => [
+            ...v.map((message) =>
+              message.id === optimistic
+                ? { ...message, created_at: data.user_created_at }
+                : message,
+            ),
+            {
+              role: "assistant",
+              content: data.content,
+              created_at: data.created_at,
+              metadata: { cards: data.cards },
+            },
+          ]);
+          setActive(
+            (v) =>
+              v && {
                 ...v,
                 title:
                   v.title === "새 대화"
@@ -453,21 +492,27 @@ export default function ChatPanel({
                     : v.title,
                 context_tokens: data.usage.tokens,
                 context_limit: data.usage.limit,
-            },
-        );
-        if (data.cards?.length)
-          window.dispatchEvent(new CustomEvent("apms:tasks-changed"));
-        if (data.handover) {
-          setNotice(data.handover.notice);
-          setActive(data.handover.session);
-          localStorage.setItem(
-            chatSessionStorageKey(projectSlug),
-            data.handover.session.id,
+              },
           );
+          if (data.cards?.length)
+            window.dispatchEvent(new CustomEvent("apms:tasks-changed"));
+          if (data.handover) {
+            setNotice(data.handover.notice);
+            setActive(data.handover.session);
+            localStorage.setItem(
+              chatSessionStorageKey(projectSlug),
+              data.handover.session.id,
+            );
+          }
         }
-      }
-    await load();
-    setBusy(false);
+      await load();
+      if (!currentInput.current) deleteChatDraft(sessionStorage, sentSessionId);
+    } catch {
+      setNotice("요청을 처리하지 못했습니다");
+    } finally {
+      setBusy(false);
+      if (!currentInput.current) inputRef.current?.focus();
+    }
   }
   function handleConversationScroll() {
     if (!conversation.current) return;
@@ -515,6 +560,7 @@ export default function ChatPanel({
     };
     if (native.isComposing || native.keyCode === 229) return;
     if (event.key === "Enter" && !event.shiftKey) {
+      if (busy) return;
       event.preventDefault();
       void send();
     }
@@ -748,6 +794,7 @@ export default function ChatPanel({
           )}
           <form className="composer" onSubmit={submitComposer}>
             <textarea
+              ref={inputRef}
               disabled={!active || readOnly}
               value={input}
               placeholder={
@@ -757,16 +804,24 @@ export default function ChatPanel({
                     ? "종료된 세션은 읽기 전용입니다"
                     : "메시지를 입력하세요"
               }
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                currentInput.current = e.target.value;
+                setInput(e.target.value);
+              }}
               onKeyDown={handleComposerKeyDown}
             />
             <button
               type="submit"
               disabled={!active || readOnly || busy || !input.trim()}
+              aria-disabled={!active || readOnly || busy || !input.trim()}
+              title={busy ? "응답 생성 중 — 완료 후 전송할 수 있습니다" : "전송"}
             >
               {busy ? "…" : "↑"}
             </button>
           </form>
+          <p className="composer-status" aria-live="polite">
+            {busy ? "응답 생성 중 — 완료 후 전송할 수 있습니다" : ""}
+          </p>
         </div>
       </div>
     </main>

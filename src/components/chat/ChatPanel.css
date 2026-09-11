@@ -258,6 +258,16 @@
   background: #292927;
   color: white;
 }
+.chat-app .composer button:disabled {
+  background: #a8a8a3;
+  cursor: not-allowed;
+}
+.chat-app .composer-status {
+  min-height: 18px;
+  margin: 4px 8px 0;
+  color: #6b6a66;
+  font-size: 12px;
+}
 .chat-app .composer textarea:disabled {
   background: #f7f7f5;
   color: #777;
