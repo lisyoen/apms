@@ -27,6 +27,14 @@ export async function initializeProject(user: string, project: string, name: str
 export async function readDocument(user: string, project: string, kind: DocKind) { return readFile(docPath(user, project, kind), "utf8"); }
 export async function documentMetadata(user: string, project: string, kind: DocKind) { const file=docPath(user,project,kind);const [content,info]=await Promise.all([readFile(file,"utf8"),stat(file)]);return{content,etag:`"${contentHash(content)}"`,updatedAt:info.mtime.toISOString()}; }
 export async function writeDocument(user: string, project: string, kind: DocKind, content: string) { await atomicWrite(docPath(user, project, kind), content); }
+export function normalizeDocumentEtag(value: string) {
+  const normalized=value.trim().replace(/^W\//i,"").trim().replace(/^"|"$/g,"");
+  return /^[a-f0-9]{64}$/i.test(normalized)?normalized.toLowerCase():null;
+}
+export function documentEtagsMatch(left: string, right: string) {
+  const normalizedLeft=normalizeDocumentEtag(left),normalizedRight=normalizeDocumentEtag(right);
+  return normalizedLeft!==null&&normalizedLeft===normalizedRight;
+}
 
 function yamlValue(value: string | number | null | undefined) { if (value == null) return "null"; if (typeof value === "number") return String(value); return JSON.stringify(value); }
 export function serializeMarkdown(frontmatter: Frontmatter, body: string) { const required = ["title", "project", "user", "pre-task", "next-task", "type", "created_at", ...(frontmatter.type === "task" ? ["timeout_min"] : [])]; const extras = Object.keys(frontmatter).filter((k) => !required.includes(k)); return `---\n${[...required, ...extras].map((k) => `${k}: ${yamlValue(frontmatter[k])}`).join("\n")}\n---\n\n${body.replace(/^\s+/, "").replace(/\s*$/, "")}\n`; }

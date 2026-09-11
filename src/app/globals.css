@@ -235,6 +235,11 @@ button {
 .project-sidebar {
   border-right: 1px solid var(--line);
   padding: 30px 20px;
+  position: sticky;
+  top: 60px;
+  align-self: start;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 .project-sidebar .back {
   color: var(--muted);
@@ -536,6 +541,9 @@ button {
     border-right: 0;
     border-bottom: 1px solid var(--line);
     padding: 18px;
+    position: static;
+    height: auto;
+    overflow-y: visible;
   }
   .project-sidebar nav {
     display: flex;

@@ -463,7 +463,7 @@ timeout_min: 20
 
 *Implementation status: implemented*
 
-`GET /api/projects/{slug}/docs/{kind}`는 Markdown 원문과 `ETag`, `X-Updated-At` 리비전 헤더를 반환한다. `PUT`은 `guide`, `next`, `setting`에만 허용하며 열 때 받은 ETag를 `If-Match`로 보내야 한다. 오래된 리비전은 파일을 쓰지 않고 409, 조건 누락은 428을 반환한다. 성공 응답에는 `ok`, 새 `etag`, `updated_at`이 포함된다.
+`GET /api/projects/{slug}/docs/{kind}`는 Markdown 원문과 `ETag`, `X-Updated-At` 리비전 헤더를 반환한다. ETag는 정확한 UTF-8 Markdown 콘텐츠의 SHA-256을 따옴표로 감싼 strong ETag이며 파일시스템 시각에 의존하지 않는다. `PUT`은 `guide`, `next`, `setting`에만 허용하며 가장 최근에 불러오거나 저장 성공 응답에서 받은 ETag를 `If-Match`로 보내야 한다. 비교할 때 따옴표 유무와 전송 중 붙은 `W/` 접두 형식을 정규화한 뒤 콘텐츠 해시를 대조한다. 오래된 콘텐츠 리비전은 파일을 쓰지 않고 409, 조건 누락은 428을 반환한다. 성공 응답에는 `ok`, 새 `etag`, `updated_at`이 포함되며 클라이언트는 다음 저장을 위해 이 ETag를 보관해야 한다.
 
 `setting`은 YAML frontmatter가 필수이며 허용된 비민감 실행 키만 정해진 문자열·정수·문자열 배열 타입으로 받는다. `secrets`에는 이름만 저장한다. 잘못된 frontmatter는 사용자 메시지와 함께 400, 소유권 위반은 403을 반환한다.
 # LLM 연결 상태

@@ -462,7 +462,7 @@ Send a structured correction prompt up to once on failure, or return 422 if it f
 
 *Implementation status: implemented*
 
-`GET /api/projects/{slug}/docs/{kind}` returns Markdown plus `ETag` and `X-Updated-At` revision headers. `PUT` is limited to `guide`, `next`, and `setting`; it requires the loaded ETag in `If-Match`. Stale revisions return 409 without writing and missing preconditions return 428. Success returns `ok`, the new `etag`, and `updated_at`.
+`GET /api/projects/{slug}/docs/{kind}` returns Markdown plus `ETag` and `X-Updated-At` revision headers. The ETag is a strong, quoted SHA-256 hash of the exact UTF-8 Markdown content; it does not depend on filesystem timestamps. `PUT` is limited to `guide`, `next`, and `setting`; it requires the latest loaded or successfully saved ETag in `If-Match`. Comparison normalizes quoted, unquoted, and `W/`-prefixed transport forms before matching the content hash. Stale content revisions return 409 without writing and missing preconditions return 428. Success returns `ok`, the new `etag`, and `updated_at`, and clients must retain that ETag for the next save.
 
 `setting` requires YAML frontmatter containing only allowed non-sensitive execution keys of the documented string, integer, or string-array types. `secrets` contains names only. Invalid frontmatter returns 400 with a user-facing message. Ownership failures return 403.
 # LLM connection status
