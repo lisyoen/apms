@@ -37,6 +37,14 @@ The production server uses port `9107` by default. Never commit `.env` or creden
 
 The login credential checkbox stores values only in that browser and does not alter the 24-hour server session lifetime.
 
+## Account and administration screens
+
+*Implementation status: minimal settings screen implemented; editing is planned in #033*
+
+The header shows the current display name, falling back to the account email. Selecting it opens the authenticated `/settings` screen, which currently provides read-only email, slug, role, and display-name details. Mobile email and telephone auto-detection is disabled, and Dirigo does not turn the account label into an email action.
+
+Only users with the `admin` role receive the **Admin** header link. Both the `/admin` server page and every `/api/admin/*` handler verify that role on the server; direct non-admin page access shows a Korean 403 permission screen and admin APIs return HTTP 403.
+
 ## Design documents
 
 English is the source language for design documents. Korean translations use the same filenames under `docs/ko/`.

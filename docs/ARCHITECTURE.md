@@ -140,11 +140,14 @@ LLM API keys use application-layer encryption and must never appear in logs or r
 Document/task paths and worker realpaths are confined to the data root or administrator allowlist.
 Share links are read-only and expire after a configurable seven-day default.
 Admin APIs require the `admin` role; users may access only owned resources.
+The header omits the admin link entirely for non-admin users. The `/admin` Server Component and every `/api/admin/*` route handler call the shared `requireAdmin()` guard; rejected page access renders a 403 permission screen and rejected API access returns HTTP 403.
 Workers receive a fresh allowlisted environment and isolated HOME/XDG directories, without server API keys or tokens.
 
 Authentication uses a signed JWT with a fixed 24-hour lifetime by default. The `dirigo_session` cookie always has matching `Max-Age` and `Expires` attributes, so closing and reopening the browser preserves the login until that deadline; expiry returns the user to the login screen. The cookie remains `HttpOnly`, `Secure`, and `SameSite=Lax`. There is no remember-session branch or long-lived refresh token.
 
 The login page's **Save ID/password** checkbox is browser-only and is never sent to the authentication API. After a successful checked login it saves the email and a Base64-obfuscated password in `localStorage`, restores both fields without automatically submitting on a later visit, and remains checked. A successful unchecked login removes both values. Base64 is not encryption, so the page warns against using this feature on a shared computer. Logout deletes only the session cookie and leaves saved credentials intact. Authentication also retains the five-failure, 15-minute IP-plus-email lockout. Immutable unique user slugs, strict worker environment isolation, and configured-workdir confinement are implemented. The write-only secret store and #009 run-scoped LLM credential injection remain planned.
+
+The shared header account label uses the database display name with an email fallback and links to authenticated `/settings`. The initial settings screen is read-only and shows email, immutable slug, role, and display name; editing, password, preferences, and notification controls are deferred to #033. The root metadata disables mobile telephone and email format detection, so the account label does not become an operating-system email-app entry point.
 
 ## 8. Reliability and recovery
 

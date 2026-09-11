@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";import { currentUser } from "@/lib/auth";import AdminShell from "./admin-shell";
-export default async function AdminPage(){const u=await currentUser();if(!u)redirect("/login");if(u.role!=="admin")return <main style={{padding:40}}><h1>403</h1><p>관리자 권한이 필요합니다.</p></main>;return <AdminShell/>}
+import { redirect } from "next/navigation";import { requireAdmin } from "@/lib/auth";import AdminShell from "./admin-shell";import AdminForbidden from "./admin-forbidden";
+export default async function AdminPage(){try{await requireAdmin()}catch(error){if(error instanceof Response&&error.status===401)redirect("/login");if(error instanceof Response&&error.status===403)return <AdminForbidden/>;throw error}return <AdminShell/>}
