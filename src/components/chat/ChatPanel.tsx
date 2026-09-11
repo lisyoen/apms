@@ -446,13 +446,13 @@ export default function ChatPanel({
         setActive(
           (v) =>
             v && {
-              ...v,
-              title:
-                v.title === "새 대화"
-                  ? text.replace(/\s+/g, " ").slice(0, 40)
-                  : v.title,
-              context_tokens: data.usage.tokens,
-              context_limit: data.usage.limit,
+                ...v,
+                title:
+                  v.title === "새 대화"
+                    ? data.title || text.replace(/\s+/g, " ").slice(0, 40)
+                    : v.title,
+                context_tokens: data.usage.tokens,
+                context_limit: data.usage.limit,
             },
         );
         if (data.cards?.length)
@@ -748,7 +748,7 @@ export default function ChatPanel({
           )}
           <form className="composer" onSubmit={submitComposer}>
             <textarea
-              disabled={!active || readOnly || busy}
+              disabled={!active || readOnly}
               value={input}
               placeholder={
                 !active
