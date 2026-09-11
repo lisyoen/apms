@@ -80,10 +80,11 @@ function SessionPicker({
       <button
         className="session-picker-toggle"
         aria-expanded={expanded}
+        title={active?.title || "세션 선택"}
         onClick={() => setExpanded((v) => !v)}
       >
-        <span>{active?.title || "세션 선택"}</span>
-        <span>▾</span>
+        <span className="session-title">{active?.title || "세션 선택"}</span>
+        <span className="session-picker-caret" aria-hidden="true">▾</span>
       </button>
       {expanded && (
         <div className="session-menu" role="menu">
@@ -616,7 +617,7 @@ export default function ChatPanel({
       )}
       <div className="chat-main">
         <header className="chat-sticky-header">
-          <div className="chat-session-heading">
+          <div className="chat-session-heading chat-header-title">
             <span className="project-context">{projectName}</span>
             <SessionPicker
               sessions={sessions}

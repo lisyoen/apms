@@ -552,6 +552,57 @@ button {
   font-size: 11px;
   font-weight: 700;
 }
+
+/* Keep the chat title and controls in separate flex regions at every panel width. */
+.chat-app {
+  grid-template-columns: minmax(0, 1fr);
+}
+.chat-app .chat-sticky-header {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: flex-start;
+  gap: 8px;
+}
+.chat-app .chat-header-title {
+  flex: 1;
+  min-width: 0;
+}
+.chat-app .chat-header-title .session-picker,
+.chat-app .chat-header-title .session-picker-toggle {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+.chat-app .session-picker-toggle .session-title {
+  display: block;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+.chat-app .chat-sticky-header:hover .session-title,
+.chat-app .session-picker-toggle:focus .session-title,
+.chat-app .session-picker-toggle:focus-visible .session-title {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.chat-app .session-picker-caret {
+  flex: none;
+}
+.chat-app .chat-header-actions {
+  position: relative;
+  z-index: 31;
+  flex: none;
+}
+.chat-app .chat-header-actions button {
+  min-width: 32px;
+  min-height: 32px;
+}
 @media (max-width: 900px) {
   .project-workspace,.project-workspace.chat-closed { display:block; }
   .project-chat { position:fixed;z-index:30;left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;height:min(72vh,680px);border:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -15px 45px #0002;background:white; }
