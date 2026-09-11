@@ -75,8 +75,8 @@ Incognito and API keys are not stored in Markdown.
 | `{project} .dev.md` | Development status, history, next steps | Worker/user |
 | `{project} .next.md` | Session Handover Summary | Chatbot |
 
-When creating a project, atomize five files with an empty template.
-Selected documents that are missing are treated the same as empty documents, but `guide` guarantees the default template.
+When creating a project, atomically create all five files. `guide`, `proposal`, `dev`, and `next` use a minimum section skeleton; `setting` uses the complete template in section 18.
+Selected documents that are missing are treated the same as empty documents, while project initialization guarantees every template.
 Document changes are made in the following order: temporary file writing, flush, rename of the same directory.
 
 ## 6. Work Queue Directory
@@ -293,3 +293,19 @@ All status changes will record the actor, previous and next paths, and time in t
 - The report shares the date and number of the corresponding task.
 - The state move is an atomic rename of the same filesystem.
 - Incognito is not included in the Markdown document.
+
+## 18. Project setting template
+
+*Implementation status: implemented*
+
+`{project}.setting.md` starts with every key accepted by the setting validator: `repo`, `branch`, `push_policy`, `verify_cmd`, `workdir`, `workspace`, remote workspace fields, `max_concurrent`, `guides`, and secret-name references. Values in this tracked template are non-sensitive defaults only.
+
+The Korean body has six required sections: project purpose and operation, task-writing rules, worker execution, report location and format, prohibitions, and public-repository precautions. `{project}` and `{created_at}` are replaced at creation time. The same template is used by the API, migration, and validator tests so a newly created setting document opens normally in the administrator editor.
+
+## 19. Setting migration
+
+*Implementation status: implemented*
+
+Run `node scripts/migrate-settings.mjs` (or pass `--dry-run`) to list missing and title-only setting documents beneath every user/project in `DIRIGO_DATA_ROOT` without changing them. Review the printed relative paths, then run `node scripts/migrate-settings.mjs --apply` to write them atomically. `--root=/path/to/data` may select another data root.
+
+The migration preserves existing frontmatter values and fills missing keys from the template. A document with meaningful body content is never changed. Back up operational data and run dry-run before apply.

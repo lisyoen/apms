@@ -75,8 +75,8 @@ DIRIGO_DATA_ROOT/
 | `{project}.dev.md` | 개발 현황, 이력, 다음 단계 | 워커/사용자 |
 | `{project}.next.md` | 세션 핸드오버 요약 | 챗봇 |
 
-프로젝트 생성 시 다섯 파일을 빈 템플릿으로 원자 생성한다.
-없는 선택 문서는 빈 문서와 동일하게 처리하되 `guide`는 기본 템플릿을 보장한다.
+프로젝트 생성 시 다섯 파일을 모두 원자적으로 생성한다. `guide`, `proposal`, `dev`, `next`는 최소 절 골격을 사용하고 `setting`은 18절의 전체 템플릿을 사용한다.
+없는 선택 문서는 빈 문서와 동일하게 처리하되 프로젝트 초기화는 모든 템플릿을 보장한다.
 문서 변경은 임시 파일 쓰기, flush, 같은 디렉터리 rename 순서로 수행한다.
 
 ## 6. 작업 큐 디렉터리
@@ -293,3 +293,19 @@ guide 변경은 이후 생성·실행되는 작업부터 적용한다.
 - 보고서가 대응 작업 날짜·번호를 공유한다.
 - 상태 이동은 같은 파일시스템의 원자 rename이다.
 - 시크릿이 Markdown 문서에 포함되지 않는다.
+
+## 18. 프로젝트 setting 템플릿
+
+*Implementation status: implemented*
+
+`{project}.setting.md`는 setting 검증기가 허용하는 모든 키로 시작한다. 해당 키는 `repo`, `branch`, `push_policy`, `verify_cmd`, `workdir`, `workspace`, 원격 작업공간 필드, `max_concurrent`, `guides`, 시크릿 이름 참조다. 추적되는 템플릿에는 비민감 기본값만 둔다.
+
+국문 본문에는 프로젝트 목적 및 운영 방식, 작업지시서 작성 기준, 워커 실행 기준, 보고서 위치 및 형식, 금지 사항, 공개 저장소 주의사항의 필수 6개 절이 있다. 생성 시 `{project}`와 `{created_at}`을 치환한다. API, 마이그레이션, 검증기 테스트가 같은 템플릿을 사용하므로 새 setting 문서는 관리자 편집기에서 정상적으로 열린다.
+
+## 19. setting 마이그레이션
+
+*Implementation status: implemented*
+
+`node scripts/migrate-settings.mjs`를 실행하거나 `--dry-run`을 지정하면 `DIRIGO_DATA_ROOT` 아래 모든 사용자/프로젝트의 누락 또는 제목 전용 setting 문서를 변경 없이 출력한다. 출력된 상대경로를 검토한 뒤 `node scripts/migrate-settings.mjs --apply`로 원자적으로 기록한다. 다른 데이터 루트는 `--root=/path/to/data`로 지정할 수 있다.
+
+마이그레이션은 기존 frontmatter 값을 유지하고 누락 키를 템플릿에서 채운다. 의미 있는 본문이 있는 문서는 변경하지 않는다. 운영 데이터는 백업하고 항상 dry-run을 먼저 실행한다.
