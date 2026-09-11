@@ -7,6 +7,7 @@ import {
   debounceChatDraft,
   deleteChatDraft,
   readChatDraft,
+  writeChatDraft,
 } from "../src/components/chat/draft-storage.ts";
 
 function memoryStorage() {
@@ -39,6 +40,12 @@ test("deleting a sent draft removes only that session key", async () => {
   deleteChatDraft(storage, "sent");
   assert.equal(readChatDraft(storage, "sent"), "");
   assert.equal(readChatDraft(storage, "typing"), "작성 중");
+});
+
+test("a pending draft can be flushed before a session or layout transition", () => {
+  const storage = memoryStorage();
+  writeChatDraft(storage, "leaving", "300ms 전 전환한 초안");
+  assert.equal(readChatDraft(storage, "leaving"), "300ms 전 전환한 초안");
 });
 
 test("pending generation locks submission without disabling the textarea", async () => {

@@ -21,6 +21,7 @@ import {
   debounceChatDraft,
   deleteChatDraft,
   readChatDraft,
+  writeChatDraft,
 } from "./draft-storage";
 import "./ChatPanel.css";
 
@@ -280,10 +281,14 @@ export default function ChatPanel({
     if (restoredDraftSession.current !== activeId) return;
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = debounceChatDraft(sessionStorage, activeId, input);
+  }, [activeId, input]);
+  useEffect(() => {
+    if (!activeId) return;
     return () => {
       if (draftTimer.current) clearTimeout(draftTimer.current);
+      writeChatDraft(sessionStorage, activeId, currentInput.current);
     };
-  }, [activeId, input]);
+  }, [activeId]);
   useEffect(() => {
     if (!sessions.length || active) return;
     const saved = localStorage.getItem(chatSessionStorageKey(projectSlug));
