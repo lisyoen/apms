@@ -86,6 +86,16 @@ Unauthorized and other non-existent user resources may unify to 404 to prevent i
 
 Project chat clients send `project_slug` instead of accepting a freely selected project ID. The server resolves ownership and stores the resulting `project_id`. OpenAI and compatible connection base URLs are stored without trailing slashes or a trailing `/v1`; calls append exactly `/v1/chat/completions`. Connection tests return `url` alongside the abbreviated model response.
 
+### Project chat web tools
+
+*Implementation status: implemented*
+
+`fetch_url` input is `{"url":"https://example.com/page"}` and success is `{"url":"...","finalUrl":"...","title":"...","text":"...","truncated":false}`. Only public HTTP(S) HTML is accepted. The reader allows three redirects, 10 seconds, 2 MB of response bytes, and 8,000 extracted text characters. Its stable user messages are `URL 읽기 실패 — 접속 오류`, `URL 읽기 실패 — 타임아웃(10초)`, `URL 읽기 실패 — 차단(403·429)`, `URL 읽기 실패 — 지원하지 않는 형식`, and `URL 읽기 실패 — 차단된 주소(내부망)`; redirect and size limits are reported separately.
+
+`web_search` input is `{"query":"...","count":5}` where `count` is clamped to 1–5. Success contains `query`, selected `language`, `unresponsiveEngines`, and `results: [{"title":"...","url":"...","snippet":"...","engine":"..."}]`. It is exposed only when `DIRIGO_SEARXNG_URL` exists and is limited to five calls per session per minute. Stable failures are `검색 실패 — SearXNG 연결 불가`, `검색 실패 — 결과 없음(응답 엔진 n개)`, and `검색 실패 — 요청 한도 초과`.
+
+The chat handler executes at most three tool rounds, injects each result as untrusted system context, then creates a final answer. Every tool message reuses the existing `messages.metadata` JSONB with `tool`, `tool_call_id`, `target`, `status`, and `duration_ms`. Successful web answers include a final `출처:` URL list; planning entries and task bodies keep the same sources when those operations are combined.
+
 ### Chat session lifecycle
 
 *Implementation status: implemented*

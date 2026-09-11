@@ -317,3 +317,11 @@ Message cards use their database `created_at` values and a shared KST formatter.
 The elected task-scheduler leader checks enabled global LLM connections every 60 seconds. Compatible and OpenAI providers use `GET {normalized_base_url}/v1/models`; provider-specific authentication headers are applied, with a five-second timeout. Results are persisted on `llm_connections` as `last_check_at`, `last_ok`, and `last_error`, including a stable failure classification.
 
 The chat client polls the authenticated status endpoint on the same cadence and keeps a non-success banner directly above the composer. Administrators receive a management link, while other users receive an administrator-contact action. Message and session timestamps share one KST formatter, and continued sessions start with a handover divider so reconnects preserve chronology.
+
+## 16. Project chat web-tool pipeline
+
+*Implementation status: implemented*
+
+The chat route advertises `fetch_url` on every request and adds `web_search` only when the server has `DIRIGO_SEARXNG_URL`. URL intent and search intent are reinforced in the system prompt. Each LLM round may request tools; web reads/searches run before planning capture, `append_planning` remains ahead of `create_task`, and the loop stops after three tool rounds. Tool outputs are inserted as explicitly untrusted system context for the next round. The server also enforces source blocks and stable failure wording so they cannot disappear from the final response.
+
+`fetch_url` resolves and rejects non-public destinations before the request and after every manual redirect, bounds redirects/time/bytes, and accepts HTML only. `web_search` selects Korean or English from the query, clamps results to five, and applies an in-process session/minute limiter. Result URLs flow into the final answer and, for combined planning or task requests, into proposal entries and task bodies. Existing `messages.metadata` records the tool name, target, success/error status, and elapsed milliseconds.

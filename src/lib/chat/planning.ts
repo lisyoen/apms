@@ -14,7 +14,7 @@ export function planningIntent(message: string): PlanningIntent {
   return explicit || listItems >= 2 || /acceptance criteria/i.test(value) ? "planning" : "general";
 }
 
-export function orderPlanningFirst<T extends { name: string }>(calls: T[]) { return [...calls].sort((left, right) => Number(right.name === "append_planning") - Number(left.name === "append_planning")); }
+export function orderPlanningFirst<T extends { name: string }>(calls: T[]) { const rank=(name:string)=>["fetch_url","web_search"].includes(name)?0:name==="append_planning"?1:name==="create_task"?2:3; return [...calls].sort((left, right) => rank(left.name)-rank(right.name)); }
 
 export function planningRules(date: string) { return `현재 날짜는 ${date}입니다. 사용자의 발화에 명시 키워드(기획, 기획서, 기획 추가, 기획서 반영, 요구사항, 작업지침, 스펙, 범위, 정책, 결정사항), 명령·의지 표현(추가해줘, 넣자, 해야 한다, 하자, 로 정하자), 또는 복수 bullet·번호·acceptance criteria 요구사항 목록이 포함되면 기획 모드로 처리하세요. 구체 요구가 있으면 반드시 다른 도구보다 먼저 append_planning을 호출해 현재 프로젝트 proposal의 오늘 날짜 절에 원문 복제가 아닌 정제된 요구사항·결정·열린 질문을 기록하세요. 구현해·발주해·배포해가 명시되고 새 요구사항도 있으면 append_planning을 먼저 호출한 뒤 기존 정책대로 create_task를 호출하세요. 구현·발주가 명시되지 않으면 create_task를 호출하지 마세요. 내용 없는 메타 발화(예: "기획해볼까?")는 도구를 호출하지 말고 질문한 뒤, 구체 답변 턴에서 기록하세요. 일반 설명 요청과 상태 조회는 append_planning을 호출하지 마세요. entries의 열린 질문은 "열린 질문:"으로 시작하세요. project는 현재 프로젝트, date는 반드시 ${date}를 사용하세요. 기록 확인 문장은 서버가 고정하므로 임의로 기록 완료를 주장하지 마세요.`; }
 

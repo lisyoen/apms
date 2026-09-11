@@ -25,6 +25,10 @@ npm run dev
 
 The production server uses port `9107` by default. Never commit `.env` or credentials.
 
+| Variable | Example/default | Purpose |
+|---|---:|---|
+| `DIRIGO_SEARXNG_URL` | `http://localhost:8889` | Optional server-only SearXNG endpoint. If absent, project chat does not expose `web_search`. |
+
 ## Authentication environment
 
 *Implementation status: implemented*
@@ -51,6 +55,14 @@ Only users with the `admin` role receive the **Admin** header link. Both the `/a
 Project chat treats explicit planning keywords, requirement commands, and multi-item requirement lists as planning input. It refines concrete requirements, decisions, and open questions into bullets under `## 기획 YYYY-MM-DD` in the project's `.proposal.md`; an existing date section is reused and normalized duplicates are merged. A content-free prompt such as “shall we plan?” asks for details without changing the proposal, and ordinary questions or status requests do not change it.
 
 After a successful append, chat always confirms the proposal location, summary, and open questions in a fixed four-line response. A task is created only when the user explicitly also asks to implement, order, or deploy, and planning is recorded first. Suspected credentials are rejected rather than written.
+
+## URL reading and web search in project chat
+
+*Implementation status: implemented*
+
+Project chat can call `fetch_url` for a public HTTP(S) page and, when `DIRIGO_SEARXNG_URL` is configured, `web_search` for up to five SearXNG results. URL reads block localhost, private/link-local/metadata addresses, re-check up to three redirects, stop after 10 seconds or 2 MB, extract readable HTML, and truncate extracted text after 8,000 characters. Search is limited to five requests per session per minute.
+
+Tool results feed a bounded three-round LLM tool loop. Answers end with a `출처:` URL block; combined planning and task-order requests also retain the URLs in proposal entries and task bodies. Failures remain visible and distinguish URL connection, timeout, blocked status, unsupported format, and internal-address errors from SearXNG connection, empty-result engine counts, and rate-limit errors. Tool target, status, and elapsed time are stored in message metadata.
 
 ## Design documents
 

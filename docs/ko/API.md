@@ -83,6 +83,16 @@ Markdown 원문 다운로드만 `text/markdown`을 반환한다.
 
 `GET /api/sessions`는 프로젝트 없는 세션만 반환하고, `project_slug`를 지정하면 인증 사용자가 소유한 해당 프로젝트 세션을 반환한다. 결과는 마지막 메시지 시각 최신순이며 `last_message_at`을 포함한다. `PATCH /api/sessions/{id}`는 `{"title":"..."}`을 받아 공백을 정규화한다. `DELETE`는 204를 반환하고 PostgreSQL 외래 키 cascade로 메시지도 삭제한다. 두 변경 API는 다른 사용자의 세션에 403을 반환한다. 첫 사용자 메시지는 줄바꿈을 제거한 앞 40자로 기본 제목을 교체한다.
 
+### 프로젝트 챗 웹 도구
+
+*구현 상태: 구현 완료*
+
+`fetch_url` 입력은 `{"url":"https://example.com/page"}`, 성공 결과는 `{"url":"...","finalUrl":"...","title":"...","text":"...","truncated":false}`다. 공개 HTTP(S) HTML만 허용한다. 리더는 리다이렉트 3회, 응답 10초·2MB, 추출 텍스트 8,000자를 상한으로 둔다. 안정된 사용자 문구는 `URL 읽기 실패 — 접속 오류`, `URL 읽기 실패 — 타임아웃(10초)`, `URL 읽기 실패 — 차단(403·429)`, `URL 읽기 실패 — 지원하지 않는 형식`, `URL 읽기 실패 — 차단된 주소(내부망)`이며 리다이렉트·크기 상한도 별도로 알린다.
+
+`web_search` 입력은 `{"query":"...","count":5}`이고 `count`는 1–5로 제한한다. 성공 결과는 `query`, 선택된 `language`, `unresponsiveEngines`, `results: [{"title":"...","url":"...","snippet":"...","engine":"..."}]`를 포함한다. `DIRIGO_SEARXNG_URL`이 있을 때만 노출하고 세션별 분당 5회로 제한한다. 안정된 실패 문구는 `검색 실패 — SearXNG 연결 불가`, `검색 실패 — 결과 없음(응답 엔진 n개)`, `검색 실패 — 요청 한도 초과`다.
+
+챗 핸들러는 최대 3회 도구 라운드를 실행하고 각 결과를 신뢰하지 않는 시스템 컨텍스트로 주입한 뒤 최종 답변을 만든다. 각 도구 메시지는 기존 `messages.metadata` JSONB에 `tool`, `tool_call_id`, `target`, `status`, `duration_ms`를 저장한다. 웹 도구 성공 답변은 말미에 `출처:` URL 목록을 포함하고, 결합 요청이면 같은 출처를 기획 항목과 작업 본문에도 남긴다.
+
 ## 3. 인증
 
 *Implementation status: implemented*
