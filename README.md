@@ -25,6 +25,18 @@ npm run dev
 
 The production server uses port `9107` by default. Never commit `.env` or credentials.
 
+## Authentication environment
+
+*Implementation status: implemented*
+
+| Variable | Default | Purpose |
+|---|---:|---|
+| `DIRIGO_SESSION_TTL_HOURS` | `24` | Fixed lifetime for both the signed JWT and persistent `dirigo_session` cookie. |
+| `DIRIGO_LOGIN_MAX_ATTEMPTS` | `5` | Failed attempts allowed for one email and IP before lockout. |
+| `DIRIGO_LOGIN_LOCKOUT_MINUTES` | `15` | Login-attempt counting and lockout window. |
+
+The login credential checkbox stores values only in that browser and does not alter the 24-hour server session lifetime.
+
 ## Design documents
 
 English is the source language for design documents. Korean translations use the same filenames under `docs/ko/`.

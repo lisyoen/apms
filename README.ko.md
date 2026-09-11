@@ -25,6 +25,18 @@ npm run dev
 
 운영 서버는 기본적으로 `9107` 포트를 사용합니다. `.env`나 자격 증명을 커밋하지 마세요.
 
+## 인증 환경 변수
+
+*Implementation status: implemented*
+
+| 변수 | 기본값 | 용도 |
+|---|---:|---|
+| `DIRIGO_SESSION_TTL_HOURS` | `24` | 서명 JWT와 영속 `dirigo_session` 쿠키에 함께 적용하는 고정 수명 |
+| `DIRIGO_LOGIN_MAX_ATTEMPTS` | `5` | 이메일과 IP 조합별 잠금 전 로그인 실패 허용 횟수 |
+| `DIRIGO_LOGIN_LOCKOUT_MINUTES` | `15` | 로그인 시도 집계 및 잠금 시간 |
+
+로그인 자격 증명 체크박스는 해당 브라우저에만 값을 저장하며 서버 세션의 24시간 수명은 변경하지 않습니다.
+
 ## 설계 문서
 
 영문 설계 문서가 원본이며, 같은 파일명의 국문 번역본은 `docs/ko/`에 있습니다.

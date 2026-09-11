@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { createSession, sessionTtlSeconds } from "@/lib/session";
+import { createSession, sessionCookie } from "@/lib/session";
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string };
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
   await db.query("DELETE FROM login_attempts WHERE lower(email)=lower($1) AND ip=$2", [email, ip]);
   const token = await createSession({ email: user.email, role: user.role });
   const response = Response.json({ ok: true });
-  response.headers.append("Set-Cookie", `dirigo_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${sessionTtlSeconds()}`);
+  response.headers.append("Set-Cookie", sessionCookie(token));
   return response;
 }
