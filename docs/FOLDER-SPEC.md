@@ -4,7 +4,7 @@
 
 *Implementation status: partial*
 
-This document defines the user/project documentation and file-based work queue specifications under `APMS_data_root`.
+This document defines the user/project documentation and file-based work queue specifications under `DIRIGO_data_root`.
 All path examples are data root relative paths.
 The contents of the file are the original work, and the DB is the index to search and aggregate them.
 
@@ -13,7 +13,7 @@ The contents of the file are the original work, and the DB is the index to searc
 *Implementation status: implemented*
 
 ```text
-APMS_DATA_ROOT/
+DIRIGO_DATA_ROOT/
 └── {user}/
     ├── docs/
     │   └── *.md
@@ -285,7 +285,7 @@ All status changes will record the actor, previous and next paths, and time in t
 
 *Implementation status: partial*
 
-- All paths are inside `APMS_data_root`.
+- All paths are inside `DIRIGO_data_root`.
 - User and project slug match DB ownership.
 - The working file name satisfies the date and number rules.
 - The frontmatter required fields and body are valid.

@@ -394,7 +394,7 @@ Random absolute path input is not received and is interpreted as project ID and 
 ```
 
 ```json
-{"id":"uuid","url":"https://apms.craftbay.io/share/random-token","expires_at":"2026-09-10T06:00:00Z"}
+{"id":"uuid","url":"https://dirigo.craftbay.io/share/random-token","expires_at":"2026-09-10T06:00:00Z"}
 ```
 
 The original shared token will only be provided once in the generated response and the hash will be stored in the DB.

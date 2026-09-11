@@ -61,11 +61,11 @@ export class Scheduler {
     options: { maxWorkers?: number; intervalMs?: number } = {},
   ) {
     this.maxWorkers =
-      options.maxWorkers ?? Number(process.env.APMS_MAX_WORKERS || 20);
+      options.maxWorkers ?? Number(process.env.DIRIGO_MAX_WORKERS || 20);
     this.lockKey = this.runner.type === "dummy" ? SCHEDULER_LOCK_KEY + process.pid : SCHEDULER_LOCK_KEY;
     this.intervalMs =
       options.intervalMs ??
-      Number(process.env.APMS_SCHEDULER_INTERVAL_MS || 10_000);
+      Number(process.env.DIRIGO_SCHEDULER_INTERVAL_MS || 10_000);
   }
 
   async start() {
@@ -163,9 +163,9 @@ export class Scheduler {
     const max = Number(value.max_workers);
     if (Number.isInteger(max) && max > 0 && max <= 100) this.maxWorkers = max;
     if (typeof value.opencode_path === "string" && value.opencode_path)
-      process.env.APMS_OPENCODE_PATH = value.opencode_path;
+      process.env.DIRIGO_OPENCODE_PATH = value.opencode_path;
     if (value.runner === "subprocess" || value.runner === "container")
-      process.env.APMS_WORKER_RUNNER = value.runner;
+      process.env.DIRIGO_WORKER_RUNNER = value.runner;
   }
 
   private async projects() {
@@ -479,7 +479,7 @@ async function fileExists(file: string) {
   );
 }
 export function selectRunner(): WorkerRunner {
-  return process.env.APMS_WORKER_RUNNER === "dummy"
+  return process.env.DIRIGO_WORKER_RUNNER === "dummy"
     ? new DummyRunner()
     : new OpenCodeRunner();
 }

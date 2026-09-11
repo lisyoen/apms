@@ -6,10 +6,10 @@ import path from "node:path";
 import "dotenv/config";
 import pg from "pg";
 
-const root = await mkdtemp(path.join(tmpdir(), "apms-scheduler-"));
-process.env.APMS_DATA_ROOT = root;
-process.env.APMS_WORKER_RUNNER = "dummy";
-delete process.env.APMS_SMTP_URL;
+const root = await mkdtemp(path.join(tmpdir(), "dirigo-scheduler-"));
+process.env.DIRIGO_DATA_ROOT = root;
+process.env.DIRIGO_WORKER_RUNNER = "dummy";
+delete process.env.DIRIGO_SMTP_URL;
 const { Scheduler } = await import("../src/worker/scheduler.ts");
 const { DummyRunner } = await import("../src/worker/runner-dummy.ts");
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });

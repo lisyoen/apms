@@ -8,8 +8,8 @@ export async function POST(request: Request) {
   if (!body.email || !body.password) return Response.json({ error: "이메일과 비밀번호를 입력하세요." }, { status: 400 });
   const email = body.email.trim().toLowerCase();
   const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "unknown").trim().slice(0, 64);
-  const limit = Math.max(1, Number(process.env.APMS_LOGIN_MAX_ATTEMPTS || 5));
-  const windowMinutes = Math.max(1, Number(process.env.APMS_LOGIN_LOCKOUT_MINUTES || 15));
+  const limit = Math.max(1, Number(process.env.DIRIGO_LOGIN_MAX_ATTEMPTS || 5));
+  const windowMinutes = Math.max(1, Number(process.env.DIRIGO_LOGIN_LOCKOUT_MINUTES || 15));
   const failures = await db.query("SELECT count(*)::int count,min(attempted_at) first_at FROM login_attempts WHERE lower(email)=lower($1) AND ip=$2 AND NOT succeeded AND attempted_at > now()-($3*interval '1 minute')", [email, ip, windowMinutes]);
   if (failures.rows[0].count >= limit) {
     const retry = Math.max(1, Math.ceil((new Date(failures.rows[0].first_at).getTime() + windowMinutes * 60_000 - Date.now()) / 1000));
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
   await db.query("DELETE FROM login_attempts WHERE lower(email)=lower($1) AND ip=$2", [email, ip]);
   const token = await createSession({ email: user.email, role: user.role });
   const response = Response.json({ ok: true });
-  response.headers.append("Set-Cookie", `apms_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${sessionTtlSeconds()}`);
+  response.headers.append("Set-Cookie", `dirigo_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${sessionTtlSeconds()}`);
   return response;
 }

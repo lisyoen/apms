@@ -6,7 +6,7 @@ import type { RunContext, RunResult, TaskSpec, WorkerRunner } from "./types";
 
 export class OpenCodeRunner implements WorkerRunner {
   readonly type = "opencode" as const;
-  constructor(private readonly bin = process.env.APMS_OPENCODE_BIN || "opencode") {}
+  constructor(private readonly bin = process.env.DIRIGO_OPENCODE_BIN || "opencode") {}
 
   async available() {
     if (this.bin.includes("/")) return access(this.bin, constants.X_OK).then(() => true, () => false);

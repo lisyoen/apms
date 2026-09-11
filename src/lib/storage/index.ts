@@ -12,7 +12,7 @@ export type Frontmatter = { title: string; project: string; user: string; "pre-t
 const slugPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 export function assertSlug(value: string) { if (value.length < 2 || !slugPattern.test(value)) throw new Error("invalid_slug"); return value; }
 export function slugify(value: string) { const slug = value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 63).replace(/-$/, ""); return slug.length >= 2 ? slug : `p-${slug || "project"}`; }
-export function dataRoot() { return path.resolve(process.env.APMS_DATA_ROOT || "./data"); }
+export function dataRoot() { return path.resolve(process.env.DIRIGO_DATA_ROOT || "./data"); }
 function withinRoot(...segments: string[]) { segments.forEach(assertSlug); const root = dataRoot(); const value = path.resolve(root, ...segments); if (value !== root && !value.startsWith(`${root}${path.sep}`)) throw new Error("path_escape"); return value; }
 export function projectRoot(user: string, project: string) { return withinRoot(user, project); }
 export function docPath(user: string, project: string, kind: DocKind) { if (!DOC_KINDS.includes(kind)) throw new Error("invalid_doc_kind"); return path.join(projectRoot(user, project), "docs", `${project}.${kind}.md`); }

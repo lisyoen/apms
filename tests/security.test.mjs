@@ -10,8 +10,8 @@ import pg from "pg";
 import { buildRunEnv, resolveRunWorkdir } from "../src/worker/security.ts";
 import { SCHEDULER_LOCK_KEY, trySchedulerLock } from "../src/worker/scheduler.ts";
 
-const baseUrl = process.env.APMS_BASE_URL ?? "http://127.0.0.1:9107";
-const originalRoot = process.env.APMS_DATA_ROOT;
+const baseUrl = process.env.DIRIGO_BASE_URL ?? "http://127.0.0.1:9107";
+const originalRoot = process.env.DIRIGO_DATA_ROOT;
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const createdEmails = [];
 after(async () => {
@@ -19,16 +19,16 @@ after(async () => {
     await pool.query("DELETE FROM login_attempts WHERE email = ANY($1)", [createdEmails]);
     await pool.query("DELETE FROM users WHERE email = ANY($1)", [createdEmails]);
   }
-  process.env.APMS_DATA_ROOT = originalRoot;
+  process.env.DIRIGO_DATA_ROOT = originalRoot;
   delete process.env.OPENAI_API_KEY;
   await pool.end();
 });
 
 test("workdir traversal and symlink escape are rejected", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "apms-security-root-"));
-  const outside = await mkdtemp(path.join(tmpdir(), "apms-security-outside-"));
-  process.env.APMS_DATA_ROOT = root;
-  delete process.env.APMS_WORKDIR_ALLOWLIST;
+  const root = await mkdtemp(path.join(tmpdir(), "dirigo-security-root-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "dirigo-security-outside-"));
+  process.env.DIRIGO_DATA_ROOT = root;
+  delete process.env.DIRIGO_WORKDIR_ALLOWLIST;
   await assert.rejects(resolveRunWorkdir(path.join(root, "user", "project"), "project", outside), /outside/);
   const link = path.join(root, "escape-link");
   await symlink(outside, link, "dir");
@@ -38,13 +38,13 @@ test("workdir traversal and symlink escape are rejected", async () => {
 });
 
 test("run environment allowlist excludes server credentials and isolates HOME", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "apms-security-env-"));
-  process.env.APMS_DATA_ROOT = root;
+  const root = await mkdtemp(path.join(tmpdir(), "dirigo-security-env-"));
+  process.env.DIRIGO_DATA_ROOT = root;
   process.env.OPENAI_API_KEY = "x";
   const env = await buildRunEnv("test-user", "test-project", "test-run");
   const child = spawnSync(process.execPath, ["-e", "process.stdout.write(process.env.OPENAI_API_KEY || '')"], { env, encoding: "utf8" });
   assert.equal(child.stdout, "");
-  assert.deepEqual(Object.keys(env).filter((key) => !["PATH", "LANG", "TZ", "HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "APMS_USER", "APMS_PROJECT", "APMS_RUN"].includes(key)), []);
+  assert.deepEqual(Object.keys(env).filter((key) => !["PATH", "LANG", "TZ", "HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "DIRIGO_USER", "DIRIGO_PROJECT", "DIRIGO_RUN"].includes(key)), []);
   assert.ok(env.HOME.startsWith(root + path.sep));
   for (const key of ["HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"]) assert.equal((await lstat(env[key])).mode & 0o777, 0o700);
   await rm(root, { recursive: true, force: true });

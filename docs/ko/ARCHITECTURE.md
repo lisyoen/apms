@@ -1,6 +1,6 @@
 # Dirigo 아키텍처
 
-> 명칭 변경 이력: 2026-09-11 제품명을 Dirigo(디리고)로 변경했으며 호환 식별자는 유지합니다.
+> 명칭 변경 이력: 2026-09-11 도메인을 `dirigo.craftbay.io`로 확정하고 구 APMS 식별자를 폐기했습니다. 데이터 안전을 위해 DB·컨테이너명은 유지합니다.
 
 ## 1. 목적과 범위
 
@@ -180,7 +180,7 @@ health는 웹, DB, 파일 쓰기 가능 여부, 스케줄러 heartbeat를 구분
 
 ```mermaid
 flowchart TB
-  I[인터넷] --> D[apms.craftbay.io]
+  I[인터넷] --> D[dirigo.craftbay.io]
   D --> APP[Next.js + Scheduler]
   APP --> PG[(PostgreSQL)]
   APP --> VOL[(로컬 데이터 볼륨)]
@@ -193,7 +193,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  LB[apms.craftbay.io] --> WEB[Next.js 인스턴스들]
+  LB[dirigo.craftbay.io] --> WEB[Next.js 인스턴스들]
   WEB --> PG[(PostgreSQL)]
   WEB --> SHARED[(공유 파일 스토리지)]
   SCH[단일 리더 스케줄러] --> PG
@@ -208,7 +208,7 @@ flowchart TB
 ```mermaid
 flowchart LR
   U[조직 사용자] --> IDP[Keycloak]
-  IDP --> APP[apms.craftbay.io]
+  IDP --> APP[dirigo.craftbay.io]
   APP --> MAP[그룹·역할 매핑]
   APP --> CORE[2차 서비스 토폴로지]
 ```

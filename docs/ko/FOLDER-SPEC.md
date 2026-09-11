@@ -4,7 +4,7 @@
 
 *Implementation status: partial*
 
-이 문서는 `APMS_DATA_ROOT` 아래의 사용자·프로젝트 문서와 파일 기반 작업 큐 규격을 정의한다.
+이 문서는 `DIRIGO_DATA_ROOT` 아래의 사용자·프로젝트 문서와 파일 기반 작업 큐 규격을 정의한다.
 모든 경로 예시는 데이터 루트 기준 상대 경로다.
 파일 내용이 업무 원본이며 DB는 이를 검색하고 집계하는 인덱스다.
 
@@ -13,7 +13,7 @@
 *Implementation status: implemented*
 
 ```text
-APMS_DATA_ROOT/
+DIRIGO_DATA_ROOT/
 └── {user}/
     ├── docs/
     │   └── *.md
@@ -285,7 +285,7 @@ guide 변경은 이후 생성·실행되는 작업부터 적용한다.
 
 *Implementation status: partial*
 
-- 모든 경로가 `APMS_DATA_ROOT` 내부다.
+- 모든 경로가 `DIRIGO_DATA_ROOT` 내부다.
 - 사용자와 프로젝트 slug가 DB 소유권과 일치한다.
 - 작업 파일명이 날짜·번호 규칙을 만족한다.
 - frontmatter 필수 필드와 본문이 유효하다.

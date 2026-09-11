@@ -1,6 +1,6 @@
 # Dirigo Architecture
 
-> Naming history: The product name changed to Dirigo on 2026-09-11; compatibility identifiers remain unchanged.
+> Naming history: The `dirigo.craftbay.io` domain was finalized and legacy APMS identifiers were retired on 2026-09-11. Database and container names remain unchanged for data safety.
 
 ## 1. Purpose and scope
 

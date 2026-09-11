@@ -385,7 +385,7 @@ LLM 출력 검증 후 pending 파일 원자 생성과 tasks upsert를 수행한�
 ```
 
 ```json
-{"id":"uuid","url":"https://apms.craftbay.io/share/random-token","expires_at":"2026-09-10T06:00:00Z"}
+{"id":"uuid","url":"https://dirigo.craftbay.io/share/random-token","expires_at":"2026-09-10T06:00:00Z"}
 ```
 
 공유 토큰 원문은 생성 응답에서 한 번만 제공하고 DB에는 hash를 저장한다.

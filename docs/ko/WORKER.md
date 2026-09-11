@@ -26,7 +26,7 @@
 
 *Implementation status: partial*
 
-기본 폴링 주기는 10초이며 `APMS_SCHEDULER_INTERVAL_MS`로 설정한다.
+기본 폴링 주기는 10초이며 `DIRIGO_SCHEDULER_INTERVAL_MS`로 설정한다.
 파일 감시 이벤트는 지연 단축용이고 폴링이 정확성의 기준이다.
 매 루프는 만료 lease 복구, pending 스캔, 후보 정렬, 슬롯 배정 순서다.
 
@@ -106,7 +106,7 @@ opencode run --format json --file <task-relative-path>
 실제 지원 플래그는 구현 시 고정된 OpenCode 버전의 CLI 도움말로 검증한다.
 실행 파일 경로와 허용 인수는 관리자 설정의 allowlist에서 선택한다.
 작업 디렉터리는 해당 프로젝트의 승인된 checkout 또는 workspace다.
-실제 경로는 `APMS_DATA_ROOT` 또는 `APMS_WORKDIR_ALLOWLIST`의 콜론 구분 절대 루트 아래여야 한다. 심볼릭 링크 탈출은 작업 실패와 보고서 사유로 기록한다.
+실제 경로는 `DIRIGO_DATA_ROOT` 또는 `DIRIGO_WORKDIR_ALLOWLIST`의 콜론 구분 절대 루트 아래여야 한다. 심볼릭 링크 탈출은 작업 실패와 보고서 사유로 기록한다.
 작업지시서 경로는 프로젝트 상대 경로로 전달한다.
 
 ## 9. 환경변수
@@ -115,12 +115,9 @@ opencode run --format json --file <task-relative-path>
 
 | 변수 | 용도 | 비밀 |
 |---|---|---|
-| `APMS_TASK_ID` | 안정적인 작업 ID | 아니오 |
-| `APMS_RUN_ID` | 실행 ID | 아니오 |
-| `APMS_USER_SLUG` | 사용자 범위 | 아니오 |
-| `APMS_PROJECT_SLUG` | 프로젝트 범위 | 아니오 |
-| `APMS_TASK_FILE` | 상대 작업 파일 | 아니오 |
-| `APMS_REPORT_FILE` | 상대 보고서 파일 | 아니오 |
+| `DIRIGO_USER` | 사용자 범위 | 아니오 |
+| `DIRIGO_PROJECT` | 프로젝트 범위 | 아니오 |
+| `DIRIGO_RUN` | 실행 ID | 아니오 |
 | 공급자 키 | LLM 인증 | 예 |
 
 러너는 서버에서 `PATH`, `LANG`, `TZ`만 상속한다. 실행 메타데이터는 직접 구성하고 `HOME` 및 XDG data/config/cache 홈은 불변 사용자 slug 아래의 0700 디렉터리로 지정한다. 서버 provider 키와 API key/token 패턴 변수는 상속하지 않으며, 범위별 LLM 자격 주입은 #009 계획이다.

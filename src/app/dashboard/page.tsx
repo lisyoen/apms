@@ -1,2 +1,2 @@
 import { cookies } from "next/headers";import{redirect}from"next/navigation";import{readSession}from"@/lib/session";import AppShell from"@/components/AppShell";import DashboardClient from"./dashboard-client";
-export default async function DashboardPage(){const session=await readSession((await cookies()).get("apms_session")?.value);if(!session)redirect("/login");return <AppShell email={session.email} role={session.role}><DashboardClient/></AppShell>}
+export default async function DashboardPage(){const session=await readSession((await cookies()).get("dirigo_session")?.value);if(!session)redirect("/login");return <AppShell email={session.email} role={session.role}><DashboardClient/></AppShell>}

@@ -26,7 +26,7 @@ The global default concurrency is 20 and the working default timeout is 20 minut
 
 *Implementation status: partial*
 
-The default polling period is 10 seconds and is configurable with `APMS_SCHEDULER_INTERVAL_MS`.
+The default polling period is 10 seconds and is configurable with `DIRIGO_SCHEDULER_INTERVAL_MS`.
 File monitoring events are for shorter delays and polling is the criterion for accuracy.
 Every loop is in the order of expiry lease recovery, pending scan, candidate alignment, and slot assignment.
 
@@ -106,7 +106,7 @@ opencode run --format json --file <task-relative-path>
 The actual support flags are validated with a fixed version of the OpenCode CLI help at implementation.
 Select the executable path and allow arguments from the allowlist in the admin settings.
 The working directory is the approved checkout or workspace for that project.
-Its real path must be below `APMS_DATA_ROOT` or a colon-delimited absolute root in `APMS_WORKDIR_ALLOWLIST`; symlink escapes fail the task and are recorded in its report.
+Its real path must be below `DIRIGO_DATA_ROOT` or a colon-delimited absolute root in `DIRIGO_WORKDIR_ALLOWLIST`; symlink escapes fail the task and are recorded in its report.
 The work order path is communicated to the project relative path.
 
 ## 9. Environment variables
@@ -115,12 +115,9 @@ The work order path is communicated to the project relative path.
 
 | Variables | Uses | Secrets |
 |---|---|---|
-| `APMS_task_ID` | Stable Job ID | No |
-| `APMS_RUN_ID` | Run ID | No |
-| `APMS_USER_slug` | User Scope | No |
-| `APMS_project_slug` | Project Scope | No |
-| `apps_task_file` | Relative work file | No |
-| `APMS_report_file` | Relative report file | No |
+| `DIRIGO_USER` | User scope | No |
+| `DIRIGO_PROJECT` | Project scope | No |
+| `DIRIGO_RUN` | Run ID | No |
 | Supplier Key | LLM Authentication | Yes |
 
 The runner inherits only `PATH`, `LANG`, and `TZ`. It constructs run metadata itself and maps `HOME` plus the XDG data/config/cache homes to mode-0700 directories under the immutable user slug. Server provider keys and wildcard API-key/token variables are never inherited; scoped LLM credential injection remains planned for #009.
