@@ -31,11 +31,12 @@ The production server uses port `9107` by default. Never commit `.env` or creden
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `DIRIGO_SESSION_TTL_HOURS` | `24` | Fixed lifetime for both the signed JWT and persistent `dirigo_session` cookie. |
+| `DIRIGO_SESSION_TTL_HOURS` | `24` | Normal-login lifetime for both the signed JWT and persistent `dirigo_session` cookie. |
+| `DIRIGO_REMEMBER_TTL_DAYS` | `30` | Automatic-login lifetime for the signed JWT and cookie. |
 | `DIRIGO_LOGIN_MAX_ATTEMPTS` | `5` | Failed attempts allowed for one email and IP before lockout. |
 | `DIRIGO_LOGIN_LOCKOUT_MINUTES` | `15` | Login-attempt counting and lockout window. |
 
-The login credential checkbox stores values only in that browser and does not alter the 24-hour server session lifetime.
+**Save ID/password** stores the email, Base64-obfuscated password, and automatic-login preference in that browser's `localStorage`; it warns against use on a shared computer. **Automatic login** is nested beneath and depends on that option: enabling it also enables credential storage, while disabling credential storage clears and disables automatic login. The login API receives only `remember`, not the storage choice. A remembered session lasts 30 days and carries `remember: true` in its JWT; otherwise it lasts 24 hours. The cookie `Max-Age` and JWT expiry always match.
 
 ## Account and administration screens
 

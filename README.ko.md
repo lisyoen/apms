@@ -31,11 +31,12 @@ npm run dev
 
 | 변수 | 기본값 | 용도 |
 |---|---:|---|
-| `DIRIGO_SESSION_TTL_HOURS` | `24` | 서명 JWT와 영속 `dirigo_session` 쿠키에 함께 적용하는 고정 수명 |
+| `DIRIGO_SESSION_TTL_HOURS` | `24` | 일반 로그인 시 서명 JWT와 영속 `dirigo_session` 쿠키에 함께 적용하는 수명 |
+| `DIRIGO_REMEMBER_TTL_DAYS` | `30` | 자동 로그인 시 서명 JWT와 쿠키에 함께 적용하는 수명 |
 | `DIRIGO_LOGIN_MAX_ATTEMPTS` | `5` | 이메일과 IP 조합별 잠금 전 로그인 실패 허용 횟수 |
 | `DIRIGO_LOGIN_LOCKOUT_MINUTES` | `15` | 로그인 시도 집계 및 잠금 시간 |
 
-로그인 자격 증명 체크박스는 해당 브라우저에만 값을 저장하며 서버 세션의 24시간 수명은 변경하지 않습니다.
+**ID/PW 저장**은 이메일, Base64로 난독화한 비밀번호, 자동 로그인 선택 상태를 해당 브라우저의 `localStorage`에 저장하며 공용 PC 사용을 경고합니다. 아래에 들여쓴 **자동 로그인**은 이 옵션에 종속됩니다. 자동 로그인을 선택하면 ID/PW 저장도 선택되고, ID/PW 저장을 해제하면 자동 로그인도 해제·비활성화됩니다. 로그인 API에는 저장 여부가 아닌 `remember`만 전송합니다. 자동 로그인 세션은 JWT에 `remember: true`를 포함해 30일간 유지하고, 미선택 시 24시간 유지합니다. 쿠키 `Max-Age`와 JWT 만료는 항상 같습니다.
 
 ## 계정 및 관리자 화면
 

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { createSession, sessionCookie } from "@/lib/session";
 
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; remember?: boolean };
   try { body = await request.json(); } catch { return Response.json({ error: "잘못된 요청입니다." }, { status: 400 }); }
   if (!body.email || !body.password) return Response.json({ error: "이메일과 비밀번호를 입력하세요." }, { status: 400 });
   const email = body.email.trim().toLowerCase();
@@ -22,8 +22,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
   await db.query("DELETE FROM login_attempts WHERE lower(email)=lower($1) AND ip=$2", [email, ip]);
-  const token = await createSession({ email: user.email, role: user.role });
+  const remember = body.remember === true;
+  const token = await createSession({ email: user.email, role: user.role }, remember);
   const response = Response.json({ ok: true });
-  response.headers.append("Set-Cookie", sessionCookie(token));
+  response.headers.append("Set-Cookie", sessionCookie(token, remember));
   return response;
 }
