@@ -470,6 +470,7 @@ export default function ChatPanel({
         return;
       }
       const raw = await r.text();
+      let shouldReloadSessions = false;
       for (const line of raw.split("\n"))
         if (line.startsWith("data: ")) {
           const data = JSON.parse(line.slice(6));
@@ -491,17 +492,17 @@ export default function ChatPanel({
             (v) =>
               v && {
                 ...v,
-                title:
-                  v.title === "새 대화"
-                    ? data.title || text.replace(/\s+/g, " ").slice(0, 40)
-                    : v.title,
+                title: data.session?.title || v.title,
                 context_tokens: data.usage.tokens,
                 context_limit: data.usage.limit,
               },
           );
+          if (data.session?.title)
+            setSessions((v) => v.map((session) => session.id === data.session.id ? { ...session, title: data.session.title } : session));
           if (data.cards?.length)
             window.dispatchEvent(new CustomEvent("apms:tasks-changed"));
           if (data.handover) {
+            shouldReloadSessions = true;
             setNotice(data.handover.notice);
             setActive(data.handover.session);
             localStorage.setItem(
@@ -510,7 +511,7 @@ export default function ChatPanel({
             );
           }
         }
-      await load();
+      if (shouldReloadSessions) await load();
       if (!currentInput.current) deleteChatDraft(sessionStorage, sentSessionId);
     } catch {
       setNotice("요청을 처리하지 못했습니다");
