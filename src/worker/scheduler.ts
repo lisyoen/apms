@@ -11,6 +11,7 @@ import { notifyIfComplete } from "./notification";
 import { buildRunEnv, resolveRunWorkdir } from "./security";
 import type { RunResult, TaskSpec, WorkerRunner } from "./types";
 import { runLlmHealthChecks } from "../lib/llm/health";
+import { getConfig } from "../lib/config/loader";
 
 type ProjectRow = {
   id: string;
@@ -60,12 +61,12 @@ export class Scheduler {
     readonly runner: WorkerRunner,
     options: { maxWorkers?: number; intervalMs?: number } = {},
   ) {
-    this.maxWorkers =
-      options.maxWorkers ?? Number(process.env.DIRIGO_MAX_WORKERS || 20);
+    const fileConfig = getConfig().config.worker;
+    this.maxWorkers = options.maxWorkers ?? fileConfig.max_workers;
     this.lockKey = this.runner.type === "dummy" ? SCHEDULER_LOCK_KEY + process.pid : SCHEDULER_LOCK_KEY;
     this.intervalMs =
       options.intervalMs ??
-      Number(process.env.DIRIGO_SCHEDULER_INTERVAL_MS || 10_000);
+      fileConfig.scheduler_interval_ms;
   }
 
   async start() {
@@ -153,19 +154,10 @@ export class Scheduler {
 
   private async reloadSettings() {
     this.settingsLoadedAt = Date.now();
-    const result = await this.db
-      .query(
-        "SELECT value FROM settings WHERE scope='global' AND key='worker_settings'",
-      )
-      .catch(() => ({ rows: [] }));
-    const value = result.rows[0]?.value;
-    if (!value) return;
-    const max = Number(value.max_workers);
-    if (Number.isInteger(max) && max > 0 && max <= 100) this.maxWorkers = max;
-    if (typeof value.opencode_path === "string" && value.opencode_path)
-      process.env.DIRIGO_OPENCODE_PATH = value.opencode_path;
-    if (value.runner === "subprocess" || value.runner === "container")
-      process.env.DIRIGO_WORKER_RUNNER = value.runner;
+    const fileConfig = getConfig().config.worker;
+    this.maxWorkers = fileConfig.max_workers;
+    process.env.DIRIGO_OPENCODE_PATH = fileConfig.opencode_path;
+    process.env.DIRIGO_WORKER_RUNNER = fileConfig.runner;
   }
 
   private async projects() {
@@ -479,7 +471,7 @@ async function fileExists(file: string) {
   );
 }
 export function selectRunner(): WorkerRunner {
-  return process.env.DIRIGO_WORKER_RUNNER === "dummy"
+  return getConfig().config.worker.runner === "dummy"
     ? new DummyRunner()
     : new OpenCodeRunner();
 }

@@ -3,10 +3,11 @@ import { access } from "node:fs/promises";
 import { delimiter } from "node:path";
 import { spawn } from "node:child_process";
 import type { RunContext, RunResult, TaskSpec, WorkerRunner } from "./types";
+import { getConfig } from "../lib/config/loader";
 
 export class OpenCodeRunner implements WorkerRunner {
   readonly type = "opencode" as const;
-  constructor(private readonly bin = process.env.DIRIGO_OPENCODE_BIN || "opencode") {}
+  constructor(private readonly bin = getConfig().config.worker.opencode_bin) {}
 
   async available() {
     if (this.bin.includes("/")) return access(this.bin, constants.X_OK).then(() => true, () => false);

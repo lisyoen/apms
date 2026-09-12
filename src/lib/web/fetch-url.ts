@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { getConfig } from "../config/loader";
 
 const MAX_REDIRECTS = 3;
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -55,7 +56,7 @@ function decodeEntities(value: string) {
   return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (_, entity: string) => entity[0] === "#" ? String.fromCodePoint(Number(entity[1].toLowerCase() === "x" ? `0x${entity.slice(2)}` : entity.slice(1))) : named[entity.toLowerCase()] ?? `&${entity};`);
 }
 
-export function extractHtml(html: string) {
+export function extractHtml(html: string, maxText = MAX_TEXT) {
   const title = decodeEntities(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").replace(/\s+/g, " ").trim();
   const cleaned = html
     .replace(/<!--([\s\S]*?)-->/g, " ")
@@ -63,13 +64,13 @@ export function extractHtml(html: string) {
   const region = cleaned.match(/<(main|article)\b[^>]*>([\s\S]*?)<\/\1>/i)?.[2] ?? cleaned.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? cleaned;
   const text = decodeEntities(region.replace(/<br\s*\/?\s*>|<\/(?:p|div|li|h[1-6]|section|tr)>/gi, "\n").replace(/<[^>]+>/g, " "))
     .replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  const truncated = text.length > MAX_TEXT;
-  return { title, text: truncated ? `${text.slice(0, MAX_TEXT)}\n\n[본문이 8,000자에서 절단됨]` : text, truncated };
+  const truncated = text.length > maxText;
+  return { title, text: truncated ? `${text.slice(0, maxText)}\n\n[본문이 ${maxText.toLocaleString()}자에서 절단됨]` : text, truncated };
 }
 
-async function readLimited(response: Response) {
+async function readLimited(response: Response, maxBytes = MAX_BYTES) {
   const declared = Number(response.headers.get("content-length") ?? 0);
-  if (declared > MAX_BYTES) throw new FetchUrlError("too_large", FETCH_URL_ERROR_MESSAGES.too_large);
+  if (declared > maxBytes) throw new FetchUrlError("too_large", FETCH_URL_ERROR_MESSAGES.too_large);
   if (!response.body) return "";
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = []; let size = 0;
@@ -77,7 +78,7 @@ async function readLimited(response: Response) {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_BYTES) { await reader.cancel(); throw new FetchUrlError("too_large", FETCH_URL_ERROR_MESSAGES.too_large); }
+    if (size > maxBytes) { await reader.cancel(); throw new FetchUrlError("too_large", FETCH_URL_ERROR_MESSAGES.too_large); }
     chunks.push(value);
   }
   const all = new Uint8Array(size); let offset = 0;
@@ -86,11 +87,12 @@ async function readLimited(response: Response) {
 }
 
 export async function fetchUrl(raw: string, options: { fetchImpl?: typeof fetch; resolver?: typeof lookup; timeoutMs?: number } = {}): Promise<FetchUrlResult> {
+  const settings = getConfig().config.fetch;
   const fetchImpl = options.fetchImpl ?? fetch;
   const resolver = options.resolver ?? lookup;
   let current = await assertPublicUrl(raw, resolver);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? settings.timeout_ms);
   try {
     for (let redirects = 0; ; redirects++) {
       let response: Response;
@@ -110,7 +112,7 @@ export async function fetchUrl(raw: string, options: { fetchImpl?: typeof fetch;
       if (!response.ok) throw new FetchUrlError("connection", FETCH_URL_ERROR_MESSAGES.connection, response.status);
       const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
       if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) throw new FetchUrlError("unsupported_type", FETCH_URL_ERROR_MESSAGES.unsupported_type);
-      const extracted = extractHtml(await readLimited(response));
+      const extracted = extractHtml(await readLimited(response, settings.max_bytes), settings.max_chars);
       return { url: raw, finalUrl: current.toString(), ...extracted };
     }
   } finally { clearTimeout(timer); }

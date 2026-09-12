@@ -13,6 +13,8 @@ Each level-two design section includes `Implementation status: implemented|parti
 - [Data model](DATA-MODEL.md)
 - [REST API](API.md)
 - [Scheduler and worker](WORKER.md)
+- [Configuration](CONFIG.md)
+- [CLI](CLI.md)
 
 ## Language policy
 

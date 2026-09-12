@@ -13,6 +13,8 @@ Dirigo 설계 문서의 원본 언어는 영문입니다. 국문 번역은 이 �
 - [데이터 모델](DATA-MODEL.md)
 - [REST API](API.md)
 - [스케줄러와 워커](WORKER.md)
+- [설정](CONFIG.md)
+- [CLI](CLI.md)
 
 ## 언어 정책
 

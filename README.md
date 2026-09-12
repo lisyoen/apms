@@ -25,6 +25,20 @@ npm run dev
 
 The production server uses port `9107` by default. Never commit `.env` or credentials.
 
+## YAML configuration
+
+Dirigo uses `$DIRIGO_DATA_ROOT/config/dirigo.yaml` as its global configuration source and `$DIRIGO_DATA_ROOT/projects/<slug>/project.yaml` for project overrides. The precedence is code defaults → global YAML → project YAML → existing `DIRIGO_*` environment variables. Missing files are valid and use defaults.
+
+```bash
+dirigo config init --local
+dirigo config validate --local
+dirigo config get worker.max_workers --local --json
+dirigo config diff proposed.yaml --local
+dirigo config apply proposed.yaml --dry-run --local
+```
+
+Copy [`config/dirigo.example.yaml`](config/dirigo.example.yaml) for a commented example. YAML must reference secrets as `${env:NAME}`; plaintext `api_key`, `password`, and `token` values are rejected. See [configuration](docs/CONFIG.md) and [CLI](docs/CLI.md).
+
 | Variable | Example/default | Purpose |
 |---|---:|---|
 | `DIRIGO_SEARXNG_URL` | `http://localhost:8889` | Optional server-only SearXNG endpoint. If absent, project chat does not expose `web_search`. |
@@ -73,4 +87,6 @@ English is the source language for design documents. Korean translations use the
 - [Folder specification](docs/FOLDER-SPEC.md)
 - [Data model](docs/DATA-MODEL.md)
 - [REST API](docs/API.md)
+- [Configuration](docs/CONFIG.md)
+- [CLI](docs/CLI.md)
 - [Scheduler and worker](docs/WORKER.md)

@@ -1,0 +1,30 @@
+# Dirigo configuration. Keep secrets in the environment and reference them here.
+server:
+  base_url: http://127.0.0.1:9107
+  session_ttl_hours: 24
+  remember_ttl_days: 30
+llm:
+  providers:
+    - name: example
+      type: openai-compatible
+      base_url: https://api.example.com/v1
+      api_key: ${env:EXAMPLE_API_KEY}
+      models: [example-model]
+  default_model: example-model
+  usage_budget: 0
+worker:
+  scheduler_interval_ms: 10000
+  max_workers: 20
+  runner: subprocess
+  opencode_bin: opencode
+  opencode_path: opencode
+  workdir_allowlist: []
+search:
+  searxng_url: ${env:DIRIGO_SEARXNG_URL}
+  max_results: 5
+  rate_limit_per_min: 5
+fetch: { timeout_ms: 10000, max_bytes: 2097152, max_chars: 8000 }
+notifications: { smtp_from: "", enabled: true }
+planning: { record_proposals: true, expand_keywords: true }
+policy: { task_concurrency: 20, allow_shell: true, allow_network: true }
+cli: { expose: [init, get, validate, diff, apply] }

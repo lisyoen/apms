@@ -302,6 +302,14 @@ The WYSIWYG document uses `StarterKit`, link, image, resizable table/row/header/
 
 The project task view presents the in-progress, pending, done, failed, and report queues as collapsible sections with summary badges. Task creation is initiated by the **New task** control beside those badges instead of an always-visible form in the pending section.
 
+## 17. Configuration hierarchy
+
+*Implementation status: implemented*
+
+The configuration core is shared by consumers, API routes, and the CLI. It validates strict Zod schemas, merges defaults → global YAML → project YAML → environment while retaining a source per leaf, resolves `${env:NAME}` references after validation, and masks secret-shaped fields at the API boundary. Project files are limited to project-scoped sections.
+
+Writes validate first, compare a SHA-256 precondition, fsync a same-directory temporary file, rename it, and append an audit line. The loader is stateless so server requests see disk immediately; the scheduler reloads YAML during its recurring settings tick. UI editing is intentionally outside this phase.
+
 The creation dialog preserves title, Markdown instruction body, prerequisite, follow-up, and timeout fields. It validates timeout as an integer from 1 to 1440 minutes, retains input and displays an inline API error after a failed request, and refreshes the pending queue and summary after success. Escape, backdrop, and close controls dismiss it; non-empty edits require confirmation. Opening focuses the title and locks page scrolling. At viewport widths of 900 px or less, the dialog becomes a full-screen sheet.
 # LLM health and chat chronology
 

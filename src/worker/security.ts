@@ -1,6 +1,7 @@
 import { chmod, mkdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { dataRoot } from "../lib/storage/index";
+import { getConfig } from "../lib/config/loader";
 
 function contains(root: string, target: string) {
   return target === root || target.startsWith(`${root}${path.sep}`);
@@ -8,7 +9,7 @@ function contains(root: string, target: string) {
 
 export async function resolveRunWorkdir(base: string, project: string, configured?: string) {
   const requested = configured ? path.resolve(configured) : path.join(base, "workspace");
-  const roots = [dataRoot(), ...(process.env.DIRIGO_WORKDIR_ALLOWLIST || "").split(path.delimiter).filter(Boolean)];
+  const roots = [dataRoot(), ...getConfig({ project }).config.worker.workdir_allowlist];
   if (roots.some((root) => !path.isAbsolute(root))) throw new Error("workdir allowlist entries must be absolute paths");
   if (!roots.some((root) => contains(path.resolve(root), requested))) {
     throw new Error(`workdir outside DIRIGO_DATA_ROOT or DIRIGO_WORKDIR_ALLOWLIST: ${project}`);

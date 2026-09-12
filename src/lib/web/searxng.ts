@@ -16,7 +16,7 @@ const requests = new Map<string, number[]>();
 export function resetSearchRateLimits() { requests.clear(); }
 export function checkSearchRateLimit(sessionId: string, now = Date.now()) {
   const recent = (requests.get(sessionId) ?? []).filter((value) => now - value < 60_000);
-  if (recent.length >= 5) throw new SearchError("rate_limit", SEARCH_ERROR_MESSAGES.rate_limit);
+  if (recent.length >= getConfig().config.search.rate_limit_per_min) throw new SearchError("rate_limit", SEARCH_ERROR_MESSAGES.rate_limit);
   recent.push(now); requests.set(sessionId, recent);
 }
 
@@ -24,7 +24,8 @@ export function searchLanguage(query: string): "ko-KR" | "en" { return /[가-힣
 
 export async function webSearch(query: string, count: number, sessionId: string, options: { baseUrl?: string; fetchImpl?: typeof fetch; now?: number } = {}): Promise<SearchResponse> {
   checkSearchRateLimit(sessionId, options.now);
-  const baseUrl = options.baseUrl ?? process.env.DIRIGO_SEARXNG_URL;
+  const settings = getConfig().config.search;
+  const baseUrl = options.baseUrl ?? settings.searxng_url;
   if (!baseUrl) throw new SearchError("unavailable", SEARCH_ERROR_MESSAGES.unavailable);
   const language = searchLanguage(query);
   const url = new URL("search", `${baseUrl.replace(/\/+$/, "")}/`);
@@ -36,10 +37,11 @@ export async function webSearch(query: string, count: number, sessionId: string,
   let data: any;
   try { data = await response.json(); } catch { throw new SearchError("unavailable", SEARCH_ERROR_MESSAGES.unavailable); }
   const unresponsiveEngines = Array.isArray(data.unresponsive_engines) ? data.unresponsive_engines.length : 0;
-  const limit = Math.max(1, Math.min(5, Number.isFinite(Number(count)) ? Math.floor(Number(count)) : 5));
+  const limit = Math.max(1, Math.min(settings.max_results, Number.isFinite(Number(count)) ? Math.floor(Number(count)) : settings.max_results));
   const results = (Array.isArray(data.results) ? data.results : []).slice(0, limit).map((item: any) => ({
     title: String(item.title ?? "").trim(), url: String(item.url ?? "").trim(), snippet: String(item.content ?? item.snippet ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(), engine: String(item.engine ?? item.engines?.[0] ?? "unknown"),
   })).filter((item: SearchResult) => item.title && /^https?:\/\//.test(item.url));
   if (!results.length) throw new SearchError("no_results", SEARCH_ERROR_MESSAGES.no_results(unresponsiveEngines), unresponsiveEngines);
   return { query, language, results, unresponsiveEngines };
 }
+import { getConfig } from "../config/loader";

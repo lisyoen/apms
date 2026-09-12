@@ -14,6 +14,7 @@
     "db:seed": "node scripts/seed.mjs"
   },
   "license": "MIT",
+  "bin": { "dirigo": "bin/dirigo" },
   "dependencies": {
     "@tiptap/core": "2.27.2",
     "@tiptap/extension-bubble-menu": "2.27.2",
@@ -43,7 +44,9 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
-    "tiptap-markdown": "0.8.10"
+    "tiptap-markdown": "0.8.10",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/node": "^26.5.0",

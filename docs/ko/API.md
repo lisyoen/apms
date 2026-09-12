@@ -533,3 +533,11 @@ Implementation status: 구현 완료 (#017).
 `GET /api/me`는 로그인 본인의 계정 필드와 정규화된 preferences를 반환합니다. `PUT /api/me`는 1~40자의 `display_name`과 `language`(`ko|en`), 320~720의 `chat_panel_width`, `task_default_sections`, `email_notifications`, 올바른 `notification_email`을 받습니다. 잘못된 입력은 400입니다.
 
 `POST /api/me/password`는 현재·새·확인 비밀번호를 받습니다. 새 비밀번호는 8자 이상이며 형식·확인 불일치는 400, 현재 비밀번호 불일치는 403입니다. 모든 경로는 세션 본인만 사용할 수 있습니다.
+
+## 설정 API
+
+*구현 상태: 구현 완료*
+
+전역 요청은 관리자, `?project=<slug>` 요청은 해당 프로젝트 소유자만 허용합니다. `GET /api/config`는 시크릿을 `***`로 마스킹한 `{config,sources,warnings,hash}`와 ETag를 반환합니다. `GET /api/config/raw`는 해당 스코프의 YAML 원문과 ETag를 반환합니다.
+
+`POST /api/config/validate`와 `/api/config/diff`는 `application/yaml` 원문 또는 `{"yaml":"..."}` JSON을 받습니다. `PUT /api/config`는 같은 본문과 `If-Match: <sha256>`를 받아 원자적으로 적용합니다. 검증 오류는 경로가 든 `errors`와 HTTP 400, 오래된 해시는 409, 성공은 유효값·출처·새 해시·변경 목록을 반환합니다. 모든 응답은 캐시하지 않습니다.

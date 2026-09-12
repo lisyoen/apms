@@ -79,6 +79,14 @@ Unauthorized and other non-existent user resources may unify to 404 to prevent i
 | patch | `/sessions/{id}` | owner | Rename a chat session |
 | delete | `/sessions/{id}` | owner | Delete a session and cascade-delete its messages |
 | post | `/admin/llm-connections/{id}` | admin | Test a connection and return its final request URL |
+| get/put | `/api/config[?project=slug]` | admin/project owner | Effective configuration / conditional apply |
+| get | `/api/config/raw[?project=slug]` | admin/project owner | Raw scoped YAML |
+| post | `/api/config/validate[?project=slug]` | admin/project owner | Validate YAML |
+| post | `/api/config/diff[?project=slug]` | admin/project owner | Leaf-level diff |
+
+### Configuration API
+
+Global requests require admin; project-scoped requests require that project's owner. `GET /api/config` returns `{config,sources,warnings,hash}` with secrets masked and an ETag. Raw returns YAML and its ETag. Validate and diff accept `application/yaml` text or `{"yaml":"..."}`. `PUT` accepts the same body and `If-Match: <sha256>`; invalid YAML returns 400 with `errors`, stale hashes return 409, and success returns effective values, sources, new hash, and changes. Responses are not cached.
 
 ### Chat panel and LLM URL behavior
 

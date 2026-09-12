@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Pool } from "pg";
+import { getConfig } from "../lib/config/loader";
 
 type CompletionRow = { id: string; name: string; slug: string; email: string; owner_id?: string };
 
@@ -26,13 +27,14 @@ export async function notifyIfComplete(db: Pool, project: CompletionRow) {
   const inserted = await db.query<{ id: string }>(`INSERT INTO notifications(project_id,recipient,subject,body,idempotency_key,status)
     VALUES($1,$2,$3,$4,$5,'pending') ON CONFLICT(idempotency_key) DO NOTHING RETURNING id`, [project.id, recipient, subject, body, key]);
   if (!inserted.rowCount) return false;
-  if (!process.env.DIRIGO_SMTP_URL) {
+  const notificationConfig = getConfig({ project: project.slug }).config.notifications;
+  if (!notificationConfig.enabled || !notificationConfig.smtp_url) {
     console.warn(`[scheduler] SMTP 미설정: notification ${inserted.rows[0].id} 기록`);
     return true;
   }
   try {
-    const transport = nodemailer.createTransport(process.env.DIRIGO_SMTP_URL);
-    const info = await transport.sendMail({ from: process.env.DIRIGO_SMTP_FROM || project.email, to: recipient, subject, text: body });
+    const transport = nodemailer.createTransport(notificationConfig.smtp_url);
+    const info = await transport.sendMail({ from: notificationConfig.smtp_from || project.email, to: recipient, subject, text: body });
     await db.query("UPDATE notifications SET status='sent',provider_id=$1,sent_at=now() WHERE id=$2", [info.messageId, inserted.rows[0].id]);
     console.log(`[scheduler] completion email sent for ${project.slug}`);
   } catch (error) {

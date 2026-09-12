@@ -25,6 +25,20 @@ npm run dev
 
 운영 서버는 기본적으로 `9107` 포트를 사용합니다. `.env`나 자격 증명을 커밋하지 마세요.
 
+## YAML 설정
+
+Dirigo는 전역 설정 원천으로 `$DIRIGO_DATA_ROOT/config/dirigo.yaml`, 프로젝트 덮어쓰기로 `$DIRIGO_DATA_ROOT/projects/<slug>/project.yaml`을 사용합니다. 우선순위는 코드 기본값 → 전역 YAML → 프로젝트 YAML → 기존 `DIRIGO_*` 환경변수입니다. 파일이 없어도 기본값으로 동작합니다.
+
+```bash
+dirigo config init --local
+dirigo config validate --local
+dirigo config get worker.max_workers --local --json
+dirigo config diff proposed.yaml --local
+dirigo config apply proposed.yaml --dry-run --local
+```
+
+주석 포함 예시는 [`config/dirigo.example.yaml`](config/dirigo.example.yaml)을 참고하세요. YAML의 시크릿은 `${env:NAME}`으로만 참조하며 평문 `api_key`, `password`, `token` 값은 거부합니다. 자세한 내용은 [설정](docs/ko/CONFIG.md)과 [CLI](docs/ko/CLI.md)에 있습니다.
+
 | 변수 | 예시/기본값 | 용도 |
 |---|---:|---|
 | `DIRIGO_SEARXNG_URL` | `http://localhost:8889` | 선택적 서버 전용 SearXNG 주소. 없으면 프로젝트 챗에 `web_search`를 노출하지 않음 |
@@ -73,4 +87,6 @@ npm run dev
 - [파일·폴더 규격](docs/ko/FOLDER-SPEC.md)
 - [데이터 모델](docs/ko/DATA-MODEL.md)
 - [REST API](docs/ko/API.md)
+- [설정](docs/ko/CONFIG.md)
+- [CLI](docs/ko/CLI.md)
 - [스케줄러와 워커](docs/ko/WORKER.md)

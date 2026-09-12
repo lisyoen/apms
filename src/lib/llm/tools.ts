@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { appendPlanning,contentHash,createTaskFile,DOC_KINDS,initializeProject,readDocument,slugify,writeDocument,type DocKind,type Frontmatter } from "@/lib/storage";
 import { fetchUrl, FetchUrlError } from "@/lib/web/fetch-url";
 import { webSearch, SearchError } from "@/lib/web/searxng";
+import { getConfig } from "@/lib/config/loader";
 function isDocKind(value: unknown): value is DocKind {
  return typeof value === "string" && (DOC_KINDS as readonly string[]).includes(value);
 }
@@ -18,7 +19,7 @@ const baseToolSpecs=[
 ];
 const fetchUrlSpec={name:"fetch_url",description:"공개 http/https URL의 HTML 제목과 본문 텍스트를 안전하게 읽습니다.",parameters:{type:"object",properties:{url:{type:"string"}},required:["url"]}};
 const webSearchSpec={name:"web_search",description:"SearXNG에서 웹을 검색하고 출처 URL이 있는 상위 결과를 반환합니다.",parameters:{type:"object",properties:{query:{type:"string"},count:{type:"integer",minimum:1,maximum:5,default:5}},required:["query"]}};
-export function getToolSpecs(){return [...baseToolSpecs,fetchUrlSpec,...(process.env.DIRIGO_SEARXNG_URL?[webSearchSpec]:[])];}
+export function getToolSpecs(){return [...baseToolSpecs,fetchUrlSpec,...(getConfig().config.search.searxng_url?[webSearchSpec]:[])];}
 export const toolSpecs=getToolSpecs();
 async function project(userId:string,slug:string){const r=await db.query("SELECT * FROM projects WHERE owner_id=$1 AND slug=$2 AND archived_at IS NULL",[userId,slug]);if(!r.rows[0])throw new Error("프로젝트를 찾을 수 없습니다.");return r.rows[0]}
 export async function runTool(user:{id:string,email:string,slug:string},sessionId:string,name:string,args:any){

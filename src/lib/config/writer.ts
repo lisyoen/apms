@@ -1,0 +1,11 @@
+import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { configPaths, getConfig, invalidateConfigCache, validateYaml } from "./loader";
+import { diffConfig } from "./diff";
+
+export class ConfigConflictError extends Error { constructor(public currentHash: string) { super("config hash conflict"); } }
+export async function applyConfig(yaml: string, options: { project?: string; root?: string; ifMatch?: string; actor?: string } = {}) { const validation = validateYaml(yaml, { project: Boolean(options.project), env: process.env }); if (!validation.valid) throw Object.assign(new Error("invalid config"), { issues: validation.errors, warnings: validation.warnings }); const current = getConfig(options); if (options.ifMatch != null && options.ifMatch.replace(/^"|"$/g, "") !== current.hash) throw new ConfigConflictError(current.hash); const changes = diffConfig(yaml, options); const files = configPaths(options.project, options.root); const file = options.project ? files.project! : files.global; await mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${process.pid}.${randomUUID()}.tmp`; const handle = await open(temp, "wx", 0o600); try { await handle.writeFile(yaml.endsWith("\n") ? yaml : `${yaml}\n`, "utf8"); await handle.sync(); } finally { await handle.close(); } try { await rename(temp, file); } catch (error) { await unlink(temp).catch(() => {}); throw error; }
+  const history = path.join(path.resolve(options.root ?? process.env.DIRIGO_DATA_ROOT ?? "./data"), "config", "history.log"); await mkdir(path.dirname(history), { recursive: true }); const historyHandle = await open(history, "a", 0o600); try { await historyHandle.writeFile(`${new Date().toISOString()}\t${options.actor ?? "local"}\t${changes.map((item) => item.key).join(",")}\n`); await historyHandle.sync(); } finally { await historyHandle.close(); } invalidateConfigCache(); return { ...getConfig(options), changes };
+}
+export async function readRawConfig(options: { project?: string; root?: string } = {}) { const file = options.project ? configPaths(options.project, options.root).project! : configPaths(undefined, options.root).global; return readFile(file, "utf8").catch((error: NodeJS.ErrnoException) => error.code === "ENOENT" ? "" : Promise.reject(error)); }
